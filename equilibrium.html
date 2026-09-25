@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Equilibrium Explorer · ICE Tables, Q vs K, Le Chatelier | Partho K. Paul</title>
+  <meta name="description" content="Type any reaction, give K and starting amounts, and see how much starting material and product are left at equilibrium. Then add, remove, compress, or change K and watch Q chase K.">
+  <link rel="canonical" href="https://chemustad.org/equilibrium.html">
+  <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" href="fonts/shrikhand-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <style>
+    @font-face { font-family: "Shrikhand"; src: url(fonts/shrikhand-latin.woff2) format("woff2"); font-display: swap; }
+    :root {
+      --night: #17131d; --night-2: #221b2a; --night-3: #2d2436; --line: #3d3346;
+      --cream: #fbf3e2; --muted: #c9bfae; --dim: #9d9386; --ink: #0f0b13;
+      --red: #e53935; --mari: #ffb300; --teal: #14b8a6; --pink: #ff5c93; --blue: #2f6fe0; --green: #43c55a;
+      --display: "Shrikhand", Georgia, serif;
+      --font: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--night); color: var(--cream); font-family: var(--font); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    a { color: var(--mari); }
+    :focus-visible { outline: 2px solid var(--mari); outline-offset: 3px; border-radius: 6px; }
+    sub, sup { font-size: .72em; line-height: 0; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+    .topbar .logo { font-family: var(--display); color: var(--mari); text-decoration: none; font-size: 18px; }
+    .topbar nav { display: flex; gap: 18px; font-size: 14px; }
+    .topbar nav a { color: var(--cream); text-decoration: none; opacity: .85; }
+    .topbar nav a:hover { opacity: 1; text-decoration: underline; }
+    .strip { height: 22px; background: url(border.svg) repeat-x center / auto 22px; }
+
+    .app { display: grid; grid-template-columns: 410px minmax(0, 1fr); align-items: start; max-width: 1400px; margin: 0 auto; }
+    .panel { padding: 24px 22px 40px; border-right: 1px solid var(--line); min-height: calc(100vh - 80px); }
+    .view { padding: 24px 24px 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+    .kexpr > span:first-child { overflow-wrap: anywhere; }
+
+    h1 { font-family: var(--display); font-weight: 400; color: var(--mari); font-size: 32px; line-height: 1.1; }
+    .lead { color: var(--muted); font-size: 14px; margin: 6px 0 20px; }
+
+    .card { background: var(--night-2); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .view .card { margin: 0; }
+    .card h2 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .card h2 .num { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--teal); color: var(--night); font-size: 13px; border: 2px solid var(--ink); flex: none; }
+    .card p { font-size: 13.5px; color: var(--muted); margin: 4px 0 10px; }
+    .card.locked { opacity: .4; pointer-events: none; }
+    .hint { font-size: 12.5px; color: var(--dim); margin-top: 6px; }
+
+    label.lbl { display: block; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--dim); margin: 10px 0 5px; }
+    select, input[type=text] { font: inherit; font-size: 15px; color: var(--cream); background: var(--night); border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; width: 100%; }
+    select:focus, input:focus { border-color: var(--mari); outline: none; }
+    input.bad { border-color: #ff8a80; }
+    .eq-input { font-size: 16px; font-weight: 600; letter-spacing: .01em; }
+
+    .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--night-3); border-radius: 999px; }
+    .seg button { font: inherit; font-size: 13px; font-weight: 600; color: var(--cream); background: transparent; border: 0; border-radius: 999px; padding: 7px 8px; cursor: pointer; }
+    .seg button[aria-pressed="true"] { background: var(--mari); color: var(--night); }
+
+    .amounts { display: grid; gap: 8px; margin-top: 4px; }
+    .amt { display: grid; grid-template-columns: 14px minmax(0, 1fr) 110px; gap: 10px; align-items: center; }
+    .amt .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); }
+    .amt .nm { font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
+    .amt .nm small { font-weight: 500; color: var(--dim); font-size: 12px; margin-left: 4px; }
+    .amt input { text-align: right; padding: 7px 10px; }
+    .amt .na { text-align: right; font-size: 12.5px; color: var(--dim); }
+    .side-lbl { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-top: 6px; }
+
+    .btn { font: inherit; font-weight: 700; font-size: 14px; color: var(--night); background: var(--mari); border: 2px solid var(--ink); border-radius: 999px; padding: 9px 18px; cursor: pointer; box-shadow: 3px 3px 0 var(--red); }
+    .btn:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--red); }
+    .btn.alt { background: var(--teal); box-shadow: 3px 3px 0 var(--pink); }
+    .btn.ghost { background: transparent; color: var(--cream); border-color: var(--line); box-shadow: none; }
+    .btn[hidden] { display: none; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+    .msg { font-size: 13px; margin-top: 10px; min-height: 1em; }
+    .msg.err { color: #ff8a80; } .msg.ok { color: var(--green); }
+
+    /* ---- results ---- */
+    .kexpr { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 17px; }
+    .kexpr .kname { font-family: var(--display); color: var(--mari); font-size: 22px; }
+    .frac { display: inline-grid; text-align: center; vertical-align: middle; }
+    .frac > span { padding: 1px 6px; white-space: nowrap; }
+    .frac > span + span { border-top: 1.5px solid var(--cream); }
+    .kval { color: var(--muted); font-size: 15px; }
+
+    .box-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .tag { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; border: 1.5px solid var(--ink); background: var(--night-3); color: var(--muted); }
+    .tag.eq { background: var(--green); color: var(--night); }
+    .tag.fwd { background: var(--teal); color: var(--night); }
+    .tag.rev { background: var(--pink); color: var(--night); }
+    .flask { position: relative; border-radius: 14px; overflow: hidden; border: 3px solid var(--ink); box-shadow: inset 0 0 0 4px var(--night), inset 0 0 0 6px var(--mari); background: radial-gradient(circle at 50% 40%, #2a2133, #120e16 75%); }
+    .flask canvas { display: block; width: 100%; height: 280px; }
+    .legend { display: flex; gap: 8px 16px; flex-wrap: wrap; margin-top: 10px; font-size: 13.5px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); display: inline-block; }
+    .legend b { font-weight: 700; }
+    .legend em { font-style: normal; color: var(--dim); font-size: 12px; }
+    .scale-note { font-size: 12px; color: var(--dim); margin-top: 6px; }
+
+    .meter { position: relative; height: 18px; border-radius: 999px; border: 2px solid var(--ink); background: linear-gradient(90deg, var(--red), var(--mari) 50%, var(--teal)); margin: 26px 6px 8px; }
+    .meter .pin { position: absolute; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: var(--cream); border: 3px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); transition: left .9s cubic-bezier(.3,.7,.2,1); }
+    .meter .pin::after { content: attr(data-pct); position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--cream); white-space: nowrap; }
+    .meter-ends { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); }
+    .big-say { font-size: 18px; font-weight: 700; margin-top: 10px; }
+    .big-say span { color: var(--mari); }
+
+    .bars { display: grid; gap: 8px; margin-top: 14px; }
+    .bar { display: grid; grid-template-columns: 110px minmax(0, 1fr) 96px; gap: 10px; align-items: center; font-size: 14px; }
+    .bar .nm { font-weight: 600; overflow-wrap: anywhere; }
+    .bar .trk { position: relative; height: 16px; background: var(--night); border-radius: 6px; border: 1px solid var(--line); overflow: hidden; }
+    .bar .trk .was { position: absolute; inset: 0 auto 0 0; border-right: 2px dashed var(--muted); opacity: .6; transition: width .9s ease; }
+    .bar .trk .now { position: absolute; inset: 0 auto 0 0; transition: width .9s ease; }
+    .bar .v { text-align: right; font-variant-numeric: tabular-nums; }
+    .bars-key { font-size: 12px; color: var(--dim); margin-top: 8px; }
+
+    .qk { position: relative; height: 84px; margin: 26px 12px 6px; }
+    .qk .axis { position: absolute; left: 0; right: 0; top: 30px; height: 3px; background: var(--line); border-radius: 2px; }
+    .qk .tick { position: absolute; top: 26px; width: 1px; height: 11px; background: var(--dim); }
+    .qk .tick span { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--dim); white-space: nowrap; }
+    .qk .mk { position: absolute; top: 0; transform: translateX(-50%); display: grid; justify-items: center; transition: left .9s cubic-bezier(.3,.7,.2,1); }
+    .qk .mk b { font-size: 12.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1.5px solid var(--ink); white-space: nowrap; }
+    .qk .mk i { width: 3px; height: 14px; }
+    .qk .mk.k b { background: var(--mari); color: var(--night); } .qk .mk.k i { background: var(--mari); }
+    .qk .mk.q b { background: var(--cream); color: var(--night); } .qk .mk.q i { background: var(--cream); }
+    .qk .mk.q { top: 33px; display: flex; flex-direction: column-reverse; align-items: center; }
+    .qk .mk.q i { height: 28px; opacity: .8; }
+    .verdict { font-size: 15px; margin-top: 8px; }
+    .verdict strong { color: var(--mari); }
+
+    .tbl-wrap { overflow-x: auto; }
+    table.ice { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+    table.ice th, table.ice td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    table.ice th:first-child, table.ice td:first-child { text-align: left; color: var(--dim); font-weight: 600; }
+    table.ice thead th { color: var(--cream); font-weight: 700; }
+    table.ice tr.e td { font-weight: 700; color: var(--cream); }
+    .xline { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+    .empty { color: var(--dim); font-size: 14px; }
+
+    @media (max-width: 900px) {
+      .app { grid-template-columns: minmax(0, 1fr); }
+      .panel { border-right: 0; border-bottom: 1px solid var(--line); min-height: 0; padding-bottom: 12px; }
+      .view { padding: 18px 16px 40px; }
+      .topbar nav a.hide-sm { display: none; }
+      .bar { grid-template-columns: 84px minmax(0, 1fr) 80px; font-size: 13px; }
+      .flask canvas { height: 230px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="./">Partho K. Paul</a>
+    <nav aria-label="Main">
+      <a href="./">Tutoring &amp; practice</a>
+      <a class="hide-sm" href="vsepr.html">VSEPR</a>
+      <a class="hide-sm" href="https://parthor96.github.io/partho/">Research</a>
+    </nav>
+  </header>
+  <div class="strip" aria-hidden="true"></div>
+
+  <main class="app">
+    <section class="panel" aria-label="Set up the reaction">
+      <h1>Equilibrium Explorer</h1>
+      <p class="lead">Type a reaction, give K and the starting amounts, and see how much starting material and product are left at equilibrium. Then disturb it and watch Q chase K.</p>
+
+      <div class="card">
+        <h2><span class="num">1</span> Reaction</h2>
+        <label class="lbl" for="preset">Start from an example</label>
+        <select id="preset"></select>
+        <label class="lbl" for="eq">Or type your own</label>
+        <input id="eq" class="eq-input" type="text" autocomplete="off" spellcheck="false" placeholder="N2(g) + 3H2(g) <=> 2NH3(g)">
+        <p class="hint">Use + between species and = or &lt;=&gt; for the arrow. Mark solids (s) and pure liquids (l); they stay out of K. Charges go at the end: H3O+, CH3COO-.</p>
+        <div class="msg" id="eq-msg" role="status"></div>
+      </div>
+
+      <div class="card locked" id="c2">
+        <h2><span class="num">2</span> K and starting amounts</h2>
+        <div class="seg" role="group" aria-label="Units">
+          <button type="button" id="u-c" aria-pressed="true">Concentration (M)</button>
+          <button type="button" id="u-p" aria-pressed="false">Pressure (atm)</button>
+        </div>
+        <label class="lbl" for="k" id="k-lbl">K<sub>c</sub></label>
+        <input id="k" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 0.5 or 1.8e-5 or 1.8x10^-5">
+        <label class="lbl" id="amt-lbl">Starting concentrations (M)</label>
+        <div class="amounts" id="amounts"></div>
+        <div class="actions"><button type="button" class="btn" id="solve">Find equilibrium</button></div>
+        <div class="msg" id="solve-msg" role="status"></div>
+      </div>
+
+      <div class="card locked" id="c3">
+        <h2><span class="num">3</span> Disturb it</h2>
+        <p>Change something after equilibrium is reached. Q is calculated right away and compared with K.</p>
+        <label class="lbl" for="dtype">What changes?</label>
+        <select id="dtype">
+          <option value="add">Add or remove a species</option>
+          <option value="vol">Change the volume</option>
+          <option value="k">Change K (new temperature)</option>
+        </select>
+        <div id="d-add">
+          <label class="lbl" for="dsp">Species</label>
+          <select id="dsp"></select>
+          <label class="lbl" for="damt" id="damt-lbl">Change in concentration (M)</label>
+          <input id="damt" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 0.5 to add, -0.2 to remove">
+        </div>
+        <div id="d-vol" hidden>
+          <label class="lbl" for="dvol">New volume ÷ old volume</label>
+          <input id="dvol" type="text" inputmode="decimal" autocomplete="off" value="0.5">
+          <p class="hint">0.5 means the container is squeezed to half its volume, so every concentration doubles. 2 means it doubles in volume.</p>
+        </div>
+        <div id="d-k" hidden>
+          <label class="lbl" for="dk">New K</label>
+          <input id="dk" type="text" inputmode="decimal" autocomplete="off">
+          <p class="hint">Only temperature changes K. Q stays the same at the instant K changes.</p>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn alt" id="apply">Apply change</button>
+          <button type="button" class="btn ghost" id="reset">Start over</button>
+        </div>
+        <div class="msg" id="d-msg" role="status"></div>
+      </div>
+    </section>
+
+    <section class="view" aria-label="Results" id="view">
+      <div class="card">
+        <div class="kexpr" id="kexpr"><span class="empty">Pick an example or type a reaction to see its K expression.</span></div>
+      </div>
+
+      <div class="card">
+        <div class="box-head">
+          <h2 style="margin:0">In the flask</h2>
+          <span class="tag" id="state-tag">Waiting</span>
+        </div>
+        <div class="flask"><canvas id="flask" aria-label="Particle picture of the reaction mixture" role="img"></canvas></div>
+        <div class="legend" id="legend"></div>
+        <p class="scale-note" id="scale-note"></p>
+      </div>
+
+      <div class="card" id="pos-card">
+        <h2>How far does it go?</h2>
+        <div class="meter" id="meter" aria-hidden="true"><span class="pin" id="pin" style="left:0%" data-pct=""></span></div>
+        <div class="meter-ends"><span>All starting material</span><span>All product</span></div>
+        <p class="big-say" id="say" aria-live="polite"></p>
+        <div class="bars" id="bars"></div>
+        <p class="bars-key">Solid bar: now. Dashed line: before this step.</p>
+      </div>
+
+      <div class="card">
+        <h2>Q versus K</h2>
+        <div class="qk" id="qk" aria-hidden="true"></div>
+        <p class="verdict" id="verdict" aria-live="polite"></p>
+        <div class="actions"><button type="button" class="btn alt" id="go" hidden>Let it re-equilibrate ▶</button></div>
+      </div>
+
+      <div class="card">
+        <h2>ICE table</h2>
+        <div class="tbl-wrap"><table class="ice" id="ice"></table></div>
+        <p class="xline" id="xline"></p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const REAC_COL = ['#e53935', '#ff5c93', '#ffb300', '#ff8a65'];
+    const PROD_COL = ['#14b8a6', '#2f6fe0', '#43c55a', '#b388ff'];
+    const PRESETS = [
+      { name: 'Haber process: ammonia', eq: 'N2(g) + 3H2(g) <=> 2NH3(g)', K: '0.5', c0: [1, 3, 0] },
+      { name: 'Hydrogen iodide', eq: 'H2(g) + I2(g) <=> 2HI(g)', K: '50', c0: [1, 1, 0] },
+      { name: 'N2O4 ⇌ 2 NO2 (small K)', eq: 'N2O4(g) <=> 2NO2(g)', K: '4.6e-3', c0: [0.1, 0] },
+      { name: 'Acetic acid in water (Ka)', eq: 'CH3COOH(aq) + H2O(l) <=> CH3COO-(aq) + H3O+(aq)', K: '1.8e-5', c0: [0.1, 0, 0, 0] },
+      { name: 'Fischer esterification', eq: 'CH3COOH + CH3CH2OH <=> CH3COOCH2CH3 + H2O', K: '4', c0: [1, 1, 0, 0] }
+    ];
+
+    // ---------- formatting ----------
+    const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    function spHTML(name) {
+      let n = name.replace(/\^/g, ''), charge = '';
+      const m = n.match(/(\d*[+-])$/);
+      if (m && n.length > m[0].length) { charge = m[1]; n = n.slice(0, -m[0].length); }
+      n = esc(n).replace(/([A-Za-z\)\]])(\d+)/g, '$1<sub>$2</sub>');
+      return n + (charge ? '<sup>' + charge.replace('-', '−') + '</sup>' : '');
+    }
+    function num(v, digits) {
+      if (v === Infinity) return '∞';
+      if (v === 0) return '0';
+      const a = Math.abs(v), d = digits || 3;
+      if (a >= 1e-3 && a < 1e4) return String(Number(v.toPrecision(d))).replace('-', '−');
+      let e = Math.floor(Math.log10(a)), m = v / Math.pow(10, e);
+      if (Math.abs(m) >= 9.995) { m /= 10; e += 1; }
+      return String(Number(m.toFixed(d - 1))).replace('-', '−') + ' × 10<sup>' + String(e).replace('-', '−') + '</sup>';
+    }
+    function parseNum(str) {
+      if (str == null) return NaN;
+      let s = String(str).trim().replace(/−/g, '-').replace(/\s+/g, '');
+      if (!s) return NaN;
+      s = s.replace(/^([+-]?[\d.]*)(?:[x×*·]?10\^?\(?([+-]?\d+)\)?)$/i, (all, m, e) => (m === '' || m === '+' || m === '-' ? m + '1' : m) + 'e' + e);
+      if (!/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(s)) return NaN;
+      return Number(s);
+    }
+
+    // ---------- parsing ----------
+    function splitTerms(side) {
+      const out = []; let cur = '';
+      for (let i = 0; i < side.length; i++) {
+        const ch = side[i];
+        if (ch === '+') {
+          const prev = side[i - 1] || '', next = side[i + 1] || '';
+          const nextNS = side.slice(i + 1).trimStart()[0] || '';
+          const spacedBoth = /\s/.test(prev) && /\s/.test(next);
+          const tight = /[A-Za-z0-9\)\]+-]/.test(prev) && /[A-Za-z0-9(\[]/.test(next) && !/^\((s|l|g|aq)\)/i.test(side.slice(i + 1));
+          if (cur.trim() && (spacedBoth || tight) && nextNS && nextNS !== '+') { out.push(cur); cur = ''; continue; }
+        }
+        cur += ch;
+      }
+      out.push(cur);
+      return out.map(t => t.trim()).filter(Boolean);
+    }
+    function parseEquation(str) {
+      const s = str.replace(/[⇌⇄↔→⟶]/g, '=').replace(/<-+>|<=+>|=+>|-{1,2}>(?=\s|[A-Z0-9(])/g, '=');
+      const sides = s.split(/\s*=+\s*/);
+      if (sides.length !== 2 || !sides[0].trim() || !sides[1].trim()) throw new Error('Write one arrow between the two sides, for example A + B <=> C.');
+      const species = [];
+      sides.forEach((side, k) => {
+        splitTerms(side).forEach(t => {
+          const m = t.match(/^(\d+(?:\.\d+)?|\d+\/\d+)?\s*(.+?)\s*(?:\((s|l|g|aq)\))?$/i);
+          if (!m) throw new Error('Could not read "' + t + '".');
+          let coef = 1;
+          if (m[1]) { coef = m[1].includes('/') ? m[1].split('/').reduce((a, b) => a / b) : Number(m[1]); }
+          const name = m[2].trim(), phase = (m[3] || '').toLowerCase();
+          if (/\s\+$|^\+/.test(t)) throw new Error('Something is missing next to a + sign.');
+          if (!/[A-Za-z]/.test(name)) throw new Error('"' + t + '" is not a species.');
+          if (!(coef > 0)) throw new Error('Coefficients must be positive.');
+          species.push({ name, phase, coef, nu: k === 0 ? -coef : coef, side: k === 0 ? 'r' : 'p', inc: phase !== 's' && phase !== 'l' });
+        });
+      });
+      const seen = {};
+      species.forEach(sp => { if (seen[sp.name] && seen[sp.name] !== sp.side) throw new Error(sp.name + ' appears on both sides.'); seen[sp.name] = sp.side; });
+      if (!species.some(sp => sp.inc)) throw new Error('Every species is a solid or liquid, so K has nothing in it.');
+      let ri = 0, pi = 0;
+      species.forEach(sp => { sp.color = sp.side === 'r' ? REAC_COL[ri++ % 4] : PROD_COL[pi++ % 4]; });
+      return species;
+    }
+
+    // ---------- math ----------
+    const inc = () => SP.filter(s => s.inc);
+    function Q(c) { // c: array aligned with SP
+      let lnq = 0, zeroNum = false, zeroDen = false;
+      SP.forEach((s, i) => { if (!s.inc) return; if (c[i] <= 0) { if (s.nu > 0) zeroNum = true; else zeroDen = true; } else lnq += s.nu * Math.log(c[i]); });
+      if (zeroNum && zeroDen) return NaN;
+      if (zeroNum) return 0;
+      if (zeroDen) return Infinity;
+      return Math.exp(lnq);
+    }
+    // extent window: all included concentrations stay >= 0
+    function window_(c0) {
+      let lo = -Infinity, hi = Infinity;
+      SP.forEach((s, i) => { if (!s.inc) return; const b = -c0[i] / s.nu; if (s.nu > 0) lo = Math.max(lo, b); else hi = Math.min(hi, b); });
+      return [lo, hi];
+    }
+    function solve(c0, K) {
+      const [lo, hi] = window_(c0), lnK = Math.log(K);
+      if (!(hi > lo)) return null;
+      // concentrations measured from an end of the window (keeps tiny amounts exact)
+      const at = (E, sign, d) => SP.map((s, i) => {
+        if (!s.inc) return c0[i];
+        let base = c0[i] + s.nu * E; if (Math.abs(base) < 1e-12 * Math.max(c0[i], 1e-300) || base < 0) base = 0;
+        return base + sign * s.nu * d;
+      });
+      const g = c => { let v = -lnK; SP.forEach((s, i) => { if (s.inc) v += s.nu * Math.log(c[i]); }); return v; };
+      // coarse bisection in x
+      let a = lo, b = hi;
+      if (!isFinite(a)) { a = (isFinite(b) ? b : 0) - 1; while (g(SP.map((s, i) => c0[i] + s.nu * a)) > 0) a = a * 2 - 1; }
+      if (!isFinite(b)) { b = (isFinite(lo) ? lo : 0) + 1; while (g(SP.map((s, i) => c0[i] + s.nu * b)) < 0) b = b * 2 + 1; }
+      for (let k = 0; k < 200; k++) {
+        const m = (a + b) / 2, v = g(SP.map((s, i) => c0[i] + s.nu * m));
+        if (!isFinite(v) ? (v > 0) : v > 0) b = m; else a = m;
+      }
+      const xs = (a + b) / 2;
+      // refine in log space from the nearer finite end
+      const fromLo = isFinite(lo) && (!isFinite(hi) || xs - lo <= hi - xs);
+      const E = fromLo ? lo : hi, sign = fromLo ? 1 : -1;
+      const span = isFinite(hi) && isFinite(lo) ? (hi - lo) : Math.abs(xs - E) * 4 + 1;
+      let la = Math.log(1e-300), lb = Math.log(span);
+      for (let k = 0; k < 400; k++) {
+        const lm = (la + lb) / 2, v = g(at(E, sign, Math.exp(lm)));
+        const up = fromLo ? v > 0 : v < 0; // g rises with x
+        if (up) lb = lm; else la = lm;
+      }
+      const d = Math.exp((la + lb) / 2), c = at(E, sign, d);
+      const x = E + sign * d;
+      return { c, x, lo, hi };
+    }
+
+    // ---------- state ----------
+    let SP = [], units = 'c', K = NaN, cCur = null, cPrev = null, cDist = null, solved = false, dotScale = 1;
+
+    // ---------- UI: reaction ----------
+    $('preset').innerHTML = '<option value="">Choose an example…</option>' + PRESETS.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join('');
+    $('preset').addEventListener('change', () => {
+      const p = PRESETS[+$('preset').value]; if (!p) return;
+      $('eq').value = p.eq; readEq(); $('k').value = p.K;
+      [...$('amounts').querySelectorAll('input')].forEach(inp => { inp.value = p.c0[+inp.dataset.i]; });
+      solveNow();
+    });
+    let eqTimer;
+    $('eq').addEventListener('input', () => { clearTimeout(eqTimer); eqTimer = setTimeout(readEq, 350); $('preset').value = ''; });
+    function readEq() {
+      const txt = $('eq').value.trim();
+      const msg = $('eq-msg');
+      if (!txt) { msg.textContent = ''; return; }
+      try { SP = parseEquation(txt); }
+      catch (e) { msg.textContent = e.message; msg.className = 'msg err'; $('eq').classList.add('bad'); lock(2, true); lock(3, true); return; }
+      $('eq').classList.remove('bad'); msg.textContent = ''; msg.className = 'msg';
+      lock(2, false); lock(3, true); solved = false; cCur = null;
+      renderAmounts(); renderK(); renderEmpty();
+    }
+    function lock(n, on) { $('c' + n).classList.toggle('locked', on); }
+
+    function renderAmounts() {
+      const u = units === 'c' ? 'M' : 'atm';
+      let html = '', lastSide = '';
+      SP.forEach((s, i) => {
+        if (s.side !== lastSide) { html += `<div class="side-lbl">${s.side === 'r' ? 'Starting materials' : 'Products'}</div>`; lastSide = s.side; }
+        html += `<div class="amt"><i class="dot" style="background:${s.color}"></i><span class="nm">${spHTML(s.name)}${s.phase ? `<small>(${s.phase})</small>` : ''}</span>` +
+          (s.inc ? `<input type="text" inputmode="decimal" data-i="${i}" aria-label="Starting ${u} of ${esc(s.name)}" value="${s.side === 'r' ? 1 : 0}">`
+                 : `<span class="na">${s.phase === 's' ? 'solid' : 'liquid'}, not in K</span>`) + '</div>';
+      });
+      $('amounts').innerHTML = html;
+      $('amounts').querySelectorAll('input').forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') solveNow(); }));
+      $('dsp').innerHTML = SP.map((s, i) => s.inc ? `<option value="${i}">${esc(s.name)}</option>` : '').join('');
+    }
+    function renderK() {
+      const br = s => units === 'c' ? `[${spHTML(s.name)}]` : `P<sub>${spHTML(s.name)}</sub>`;
+      const pw = s => s.coef === 1 ? '' : `<sup>${s.coef}</sup>`;
+      const top = inc().filter(s => s.side === 'p').map(s => br(s) + pw(s)).join('') || '1';
+      const bot = inc().filter(s => s.side === 'r').map(s => br(s) + pw(s)).join('');
+      const kn = units === 'c' ? 'K<sub>c</sub>' : 'K<sub>p</sub>';
+      const eqHTML = SP.filter(s => s.side === 'r').map(s => (s.coef !== 1 ? s.coef + ' ' : '') + spHTML(s.name)).join(' + ') + ' ⇌ ' +
+                     SP.filter(s => s.side === 'p').map(s => (s.coef !== 1 ? s.coef + ' ' : '') + spHTML(s.name)).join(' + ');
+      $('kexpr').innerHTML = `<span style="flex-basis:100%;color:var(--muted);font-size:15px">${eqHTML}</span><span class="kname">${kn}</span> = ` +
+        (bot ? `<span class="frac"><span>${top}</span><span>${bot}</span></span>` : `<span>${top}</span>`) +
+        (isFinite(K) ? `<span class="kval">= ${num(K)}</span>` : '');
+    }
+    function setUnits(u) {
+      units = u; $('u-c').setAttribute('aria-pressed', String(u === 'c')); $('u-p').setAttribute('aria-pressed', String(u === 'p'));
+      $('k-lbl').innerHTML = u === 'c' ? 'K<sub>c</sub>' : 'K<sub>p</sub>';
+      $('amt-lbl').textContent = u === 'c' ? 'Starting concentrations (M)' : 'Starting partial pressures (atm)';
+      $('damt-lbl').textContent = u === 'c' ? 'Change in concentration (M)' : 'Change in partial pressure (atm)';
+      $('amounts').querySelectorAll('input').forEach(inp => inp.setAttribute('aria-label', inp.getAttribute('aria-label').replace(/ (M|atm) /, u === 'c' ? ' M ' : ' atm ')));
+      if (SP.length) renderK(); if (solved) showAll('eq', false);
+    }
+    $('u-c').addEventListener('click', () => setUnits('c')); $('u-p').addEventListener('click', () => setUnits('p'));
+
+    // ---------- solve ----------
+    $('solve').addEventListener('click', solveNow);
+    $('k').addEventListener('keydown', e => { if (e.key === 'Enter') solveNow(); });
+    function solveNow() {
+      const msg = $('solve-msg'); msg.textContent = ''; msg.className = 'msg'; $('d-msg').textContent = '';
+      const k = parseNum($('k').value);
+      if (!(k > 0) || !isFinite(k)) { msg.textContent = 'Enter a positive K, for example 0.5 or 1.8e-5.'; msg.className = 'msg err'; $('k').classList.add('bad'); return; }
+      $('k').classList.remove('bad');
+      const c0 = SP.map(() => 0); let bad = false;
+      $('amounts').querySelectorAll('input').forEach(inp => {
+        const v = parseNum(inp.value); const ok = v >= 0 && isFinite(v);
+        inp.classList.toggle('bad', !ok); if (!ok) bad = true; else c0[+inp.dataset.i] = v;
+      });
+      if (bad) { msg.textContent = 'Starting amounts must be zero or positive numbers.'; msg.className = 'msg err'; return; }
+      K = k; renderK();
+      const r = solve(c0, K);
+      if (!r) { msg.textContent = 'Nothing can react: give every starting material a nonzero amount, or every product.'; msg.className = 'msg err'; return; }
+      dotScale = 0; cPrev = c0; cDist = c0; cCur = r.c; solved = true; lastSolve = r;
+      lock(3, false); $('dk').value = String(Number((K * 10).toPrecision(3)));
+      showAll('first', true);
+      if (window.matchMedia('(max-width: 900px)').matches) $('view').scrollIntoView({ behavior: 'smooth' });
+    }
+    let lastSolve = null;
+
+    // ---------- disturb ----------
+    $('dtype').addEventListener('change', () => { const t = $('dtype').value; $('d-add').hidden = t !== 'add'; $('d-vol').hidden = t !== 'vol'; $('d-k').hidden = t !== 'k'; });
+    $('apply').addEventListener('click', () => {
+      const msg = $('d-msg'); msg.textContent = ''; msg.className = 'msg';
+      if (!solved) return;
+      const t = $('dtype').value, c = cCur.slice(); let newK = K, what = '';
+      if (t === 'add') {
+        const i = +$('dsp').value, d = parseNum($('damt').value);
+        if (!isFinite(d) || d === 0) { msg.textContent = 'Enter an amount, positive to add or negative to remove.'; msg.className = 'msg err'; return; }
+        if (c[i] + d < 0) { msg.textContent = 'You can’t remove more than is there (' + num(c[i]).replace(/<\/?sup>/g, '') + ').'; msg.className = 'msg err'; return; }
+        c[i] += d; what = (d > 0 ? 'Added ' : 'Removed ') + spHTML(SP[i].name);
+      } else if (t === 'vol') {
+        const f = parseNum($('dvol').value);
+        if (!(f > 0) || f === 1) { msg.textContent = 'Enter a volume ratio such as 0.5 or 2.'; msg.className = 'msg err'; return; }
+        SP.forEach((s, i) => { if (s.inc) c[i] = c[i] / f; });
+        what = f < 1 ? 'Compressed to ' + num(f) + '× the volume' : 'Expanded to ' + num(f) + '× the volume';
+      } else {
+        const k2 = parseNum($('dk').value);
+        if (!(k2 > 0) || !isFinite(k2)) { msg.textContent = 'Enter a positive new K.'; msg.className = 'msg err'; return; }
+        newK = k2; what = 'K changed to ' + num(k2);
+      }
+      cPrev = cCur; cDist = c; K = newK; renderK();
+      cCur = c; lastSolve = null;
+      showAll('disturbed', true, what);
+      msg.innerHTML = what + '. Now compare Q with K on the right.'; msg.className = 'msg ok';
+    });
+    $('go').addEventListener('click', () => {
+      const r = solve(cDist, K);
+      if (!r) { $('verdict').textContent = 'Nothing can react from here.'; return; }
+      cPrev = cDist; cCur = r.c; lastSolve = r;
+      showAll('eq', true);
+    });
+    $('reset').addEventListener('click', () => { if (SP.length) solveNow(); $('d-msg').textContent = ''; });
+
+    // ---------- render all result panels ----------
+    function showAll(phase, animate, what) {
+      $('go').hidden = phase !== 'disturbed';
+      const tag = $('state-tag');
+      const from = phase === 'first' ? cDist : cPrev;
+      // dots
+      const tot = arr => SP.reduce((a, s, i) => a + (s.inc ? arr[i] : 0), 0);
+      if (!dotScale || tot(cCur) * dotScale > 170 || tot(cCur) * dotScale < 12) dotScale = 70 / Math.max(tot(from), tot(cCur), 1e-300);
+      const counts = arr => SP.map((s, i) => s.inc ? Math.round(arr[i] * dotScale) : 0);
+      if (phase === 'first') { flask.set(counts(cDist), false); setTimeout(() => flask.set(counts(cCur), true), 700); }
+      else flask.set(counts(cCur), animate);
+      const unit = units === 'c' ? 'M' : 'atm';
+      $('scale-note').textContent = `1 dot ≈ ${num(1 / dotScale).replace(/<\/?sup>/g, '').replace(' × 10', 'e')} ${unit}. Solids and pure liquids are not drawn.`;
+      $('legend').innerHTML = SP.filter(s => s.inc).map(s => { const i = SP.indexOf(s), v = cCur[i], trace = v > 0 && Math.round(v * dotScale) === 0;
+        return `<span><i style="background:${s.color}"></i><b>${spHTML(s.name)}</b> ${num(v)} ${unit}${trace ? ' <em>(trace, too little to draw)</em>' : ''}</span>`; }).join('');
+
+      // Q vs K
+      const qStart = Q(phase === 'first' ? cDist : cCur);
+      const qNow = phase === 'disturbed' ? Q(cCur) : K;
+      drawQK(phase === 'first' ? qStart : qNow, phase);
+      if (phase === 'first') {
+        tag.className = 'tag eq'; tag.textContent = 'At equilibrium';
+        $('verdict').innerHTML = verdictText(qStart, true) + ' At equilibrium Q = K = ' + num(K) + '.';
+        setTimeout(() => drawQK(K, 'eq'), 700);
+      } else if (phase === 'disturbed') {
+        const dir = !(qNow > 0) ? 1 : !isFinite(qNow) ? -1 : Math.abs(Math.log(qNow / K)) < 1e-9 ? 0 : qNow < K ? 1 : -1;
+        tag.className = 'tag ' + (dir > 0 ? 'fwd' : dir < 0 ? 'rev' : 'eq');
+        tag.textContent = dir > 0 ? 'Q < K · shifts right' : dir < 0 ? 'Q > K · shifts left' : 'Still at equilibrium';
+        $('verdict').innerHTML = (what ? what + '. ' : '') + verdictText(qNow, false);
+        $('go').hidden = dir === 0;
+      } else {
+        tag.className = 'tag eq'; tag.textContent = 'At equilibrium';
+        const moved = lastSolve ? lastSolve.x : 0;
+        $('verdict').innerHTML = `Back at equilibrium: Q = K = ${num(K)}. The reaction ran ${moved > 0 ? '<strong>forward (right)</strong>, making more product' : moved < 0 ? '<strong>in reverse (left)</strong>, making more starting material' : 'nowhere'}.`;
+      }
+
+      // meter
+      const w = window_(phase === 'disturbed' ? cCur : (phase === 'first' ? cDist : cPrev));
+      const card = $('pos-card');
+      const xNow = phase === 'disturbed' ? 0 : (lastSolve ? lastSolve.x : 0);
+      if (isFinite(w[0]) && isFinite(w[1]) && w[1] > w[0]) {
+        const frac = Math.min(1, Math.max(0, (xNow - w[0]) / (w[1] - w[0])));
+        const pct = frac * 100, shown = pct > 99.5 && pct < 100 ? '>99.5' : pct < 0.5 && pct > 0 ? '<0.5' : Math.round(pct);
+        const pin = $('pin');
+        if (phase === 'first') { const f0 = (0 - w[0]) / (w[1] - w[0]); pin.style.left = (f0 * 100) + '%'; pin.dataset.pct = ''; setTimeout(() => { pin.style.left = pct + '%'; pin.dataset.pct = shown + '%'; }, 700); }
+        else { pin.style.left = pct + '%'; pin.dataset.pct = shown + '%'; }
+        $('meter').style.display = ''; card.querySelector('.meter-ends').style.display = '';
+        $('say').innerHTML = phase === 'disturbed' ? 'Right after the change, before the reaction responds.' : describe(pct);
+      } else {
+        $('meter').style.display = 'none'; card.querySelector('.meter-ends').style.display = 'none';
+        $('say').innerHTML = phase === 'disturbed' ? 'Right after the change, before the reaction responds.' : 'With a solid or liquid on one side, the gas or solution amount alone sets Q.';
+      }
+      // bars
+      const vis = SP.map((s, i) => i).filter(i => SP[i].inc);
+      const mx = Math.max(...vis.map(i => Math.max(from[i], cCur[i])), 1e-300);
+      $('bars').innerHTML = vis.map(i => `<div class="bar"><span class="nm">${spHTML(SP[i].name)}</span><span class="trk"><span class="was" style="width:${from[i] / mx * 100}%"></span><span class="now" style="width:${(phase === 'first' ? from[i] : cCur[i]) / mx * 100}%;background:${SP[i].color}"></span></span><span class="v">${num(cCur[i])} ${unit}</span></div>`).join('');
+      if (phase === 'first') setTimeout(() => $('bars').querySelectorAll('.now').forEach((b, k) => { b.style.width = cCur[vis[k]] / mx * 100 + '%'; }), 700);
+
+      // ICE
+      renderICE(phase);
+    }
+    function describe(pct) {
+      const t = pct < 1 ? 'almost all <span>starting material</span>; barely any product forms'
+        : pct < 35 ? 'mostly <span>starting material</span>, some product'
+        : pct <= 65 ? 'a real <span>mix</span> of starting material and product'
+        : pct <= 99 ? 'mostly <span>product</span>, some starting material left'
+        : 'almost all <span>product</span>; the limiting reactant is nearly used up';
+      return 'At equilibrium: ' + t + '.';
+    }
+    function verdictText(q, first) {
+      const k = num(K), qs = q === 0 ? '0' : num(q);
+      if (isNaN(q)) return 'Q is undefined here.';
+      if (!(q > 0)) return `Q = 0 because there is no product yet. <strong>Q &lt; K</strong>, so the reaction ${first ? 'runs' : 'shifts'} <strong>right, toward products</strong>.`;
+      if (!isFinite(q)) return `Q is infinite because a starting material is missing. <strong>Q &gt; K</strong>, so the reaction ${first ? 'runs' : 'shifts'} <strong>left, toward starting materials</strong>.`;
+      if (Math.abs(Math.log(q / K)) < 1e-9) return `Q = ${qs} = K, so nothing shifts.`;
+      return q < K ? `Q = ${qs} is smaller than K = ${k}. <strong>Q &lt; K</strong>: too little product, so the reaction ${first ? 'runs' : 'shifts'} <strong>right, toward products</strong>.`
+                   : `Q = ${qs} is larger than K = ${k}. <strong>Q &gt; K</strong>: too much product, so the reaction ${first ? 'runs' : 'shifts'} <strong>left, toward starting materials</strong>.`;
+    }
+    function drawQK(q, phase) {
+      const lk = Math.log10(K);
+      const lq = q > 0 && isFinite(q) ? Math.log10(q) : null;
+      let a = Math.floor(Math.min(lk, lq ?? lk)) - 1, b = Math.ceil(Math.max(lk, lq ?? lk)) + 1;
+      if (b - a < 4) { const m = (a + b) / 2; a = Math.floor(m - 2); b = a + 4; }
+      const pos = v => (v - a) / (b - a) * 100;
+      const step = b - a <= 10 ? 1 : b - a <= 20 ? 2 : 5;
+      let html = '<div class="axis"></div>';
+      for (let e = Math.ceil(a / step) * step; e <= b; e += step) html += `<span class="tick" style="left:${pos(e)}%"><span>10<sup>${String(e).replace('-', '−')}</sup></span></span>`;
+      const qLeft = lq === null ? (q > 0 ? 100 : 0) : pos(lq);
+      const qLbl = q === 0 ? 'Q = 0' : !isFinite(q) ? 'Q = ∞' : phase === 'eq' ? 'Q = K' : 'Q';
+      html += `<span class="mk k" style="left:${pos(lk)}%"><b>K</b><i></i></span>`;
+      html += `<span class="mk q" id="qmk" style="left:${qLeft}%"><b>${qLbl}</b><i></i></span>`;
+      const box = $('qk');
+      const old = box.querySelector('#qmk');
+      const oldLeft = old ? old.style.left : null;
+      box.innerHTML = html;
+      if (oldLeft && oldLeft !== qLeft + '%') { const n = box.querySelector('#qmk'); n.style.transition = 'none'; n.style.left = oldLeft; n.offsetWidth; n.style.transition = ''; n.style.left = qLeft + '%'; }
+    }
+    function renderICE(phase) {
+      const vis = SP.map((s, i) => i).filter(i => SP[i].inc);
+      const unit = units === 'c' ? 'M' : 'atm';
+      const I = phase === 'eq' ? cPrev : cDist;
+      const done = phase !== 'disturbed';
+      const x = done && lastSolve ? lastSolve.x : 0;
+      const coefX = s => (s.nu < 0 ? '−' : '+') + (Math.abs(s.nu) === 1 ? '' : Math.abs(s.nu)) + 'x';
+      let h = `<thead><tr><th scope="col">${unit}</th>${vis.map(i => `<th scope="col">${spHTML(SP[i].name)}</th>`).join('')}</tr></thead><tbody>`;
+      h += `<tr><td>Initial</td>${vis.map(i => `<td>${num(I[i])}</td>`).join('')}</tr>`;
+      if (done) {
+        h += `<tr><td>Change</td>${vis.map(i => `<td>${coefX(SP[i])} = ${(SP[i].nu * x >= 0 ? '+' : '') + num(SP[i].nu * x)}</td>`).join('')}</tr>`;
+        h += `<tr class="e"><td>Equilibrium</td>${vis.map(i => `<td>${num(cCur[i])}</td>`).join('')}</tr>`;
+      } else {
+        h += `<tr><td>Change</td>${vis.map(i => `<td>${coefX(SP[i])}</td>`).join('')}</tr>`;
+        h += `<tr class="e"><td>Equilibrium</td>${vis.map(i => `<td>?</td>`).join('')}</tr>`;
+      }
+      $('ice').innerHTML = h + '</tbody>';
+      $('xline').innerHTML = done ? `x = ${num(x)} ${unit}${x < 0 ? ' (negative x: the reaction ran in reverse)' : ''}. Check: Q at equilibrium = ${num(Q(cCur))}.`
+                                  : 'Initial row = amounts right after the change. Press “Let it re-equilibrate” to solve for x.';
+      if (phase === 'disturbed') $('ice').querySelector('tbody tr td').textContent = 'After change';
+    }
+    function renderEmpty() {
+      $('legend').innerHTML = ''; $('scale-note').textContent = ''; $('bars').innerHTML = ''; $('say').textContent = '';
+      $('ice').innerHTML = ''; $('xline').textContent = ''; $('verdict').textContent = ''; $('qk').innerHTML = '';
+      $('state-tag').className = 'tag'; $('state-tag').textContent = 'Waiting'; $('go').hidden = true; flask.set([], false);
+    }
+
+    // ---------- particle flask ----------
+    const flask = (function () {
+      const cv = $('flask'), ctx = cv.getContext('2d');
+      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let W = 1, H = 1, dpr = 1, P = [], pending = [], last = performance.now();
+      function resize() { dpr = Math.min(window.devicePixelRatio || 1, 2); W = cv.clientWidth || 1; H = cv.clientHeight || 1; cv.width = W * dpr; cv.height = H * dpr; P.forEach(p => { p.x = Math.min(p.x, W - 8); p.y = Math.min(p.y, H - 8); }); }
+      new ResizeObserver(resize).observe(cv); resize();
+      const R = 6;
+      const mk = (s, x, y, a) => { const ang = Math.random() * 6.283, v = 22 + Math.random() * 30;
+        return { s, x: x ?? R + Math.random() * (W - 2 * R), y: y ?? R + Math.random() * (H - 2 * R), vx: Math.cos(ang) * v, vy: Math.sin(ang) * v, a, st: a < 1 ? 'in' : 'live', t0: 0 }; };
+      function set(counts, animate) {
+        pending = [];
+        const now = performance.now();
+        P = P.filter(p => p.st !== 'out');
+        const have = SP.map((_, i) => P.filter(p => p.s === i).length);
+        const outs = [], adds = [];
+        SP.forEach((_, i) => {
+          const want = counts[i] || 0, d = want - (have[i] || 0);
+          if (d < 0) { const mine = P.filter(p => p.s === i).sort(() => Math.random() - .5).slice(0, -d); outs.push(...mine); }
+          for (let k = 0; k < d; k++) adds.push(i);
+        });
+        P = P.filter(p => p.s < SP.length);
+        if (!animate || still) {
+          P = P.filter(p => !outs.includes(p)); adds.forEach(s => P.push(mk(s, null, null, 1))); return;
+        }
+        outs.sort(() => Math.random() - .5).forEach(p => { p.st = 'out'; p.t0 = now + Math.random() * 1100; });
+        adds.sort(() => Math.random() - .5).forEach((s, k) => { pending.push({ s, t0: now + 150 + Math.random() * 1100, from: outs.length ? outs[k % outs.length] : null }); });
+      }
+      function frame(t) {
+        requestAnimationFrame(frame);
+        const dt = Math.min(0.05, (t - last) / 1000); last = t;
+        pending = pending.filter(q => { if (t < q.t0) return true; P.push(mk(q.s, q.from ? q.from.x : null, q.from ? q.from.y : null, 0)); return false; });
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+        P = P.filter(p => {
+          if (!still) { p.x += p.vx * dt; p.y += p.vy * dt;
+            if (p.x < R) { p.x = R; p.vx = Math.abs(p.vx); } if (p.x > W - R) { p.x = W - R; p.vx = -Math.abs(p.vx); }
+            if (p.y < R) { p.y = R; p.vy = Math.abs(p.vy); } if (p.y > H - R) { p.y = H - R; p.vy = -Math.abs(p.vy); } }
+          if (p.st === 'in') { p.a += dt / 0.35; if (p.a >= 1) { p.a = 1; p.st = 'live'; } }
+          if (p.st === 'out' && t >= p.t0) { p.a -= dt / 0.35; if (p.a <= 0) return false; }
+          const sp = SP[p.s]; if (!sp) return false;
+          ctx.globalAlpha = Math.max(0, p.a);
+          ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, 6.2832); ctx.fillStyle = sp.color; ctx.fill();
+          ctx.lineWidth = 1.8; ctx.strokeStyle = '#0f0b13'; ctx.stroke();
+          ctx.beginPath(); ctx.arc(p.x - 2, p.y - 2, 1.8, 0, 6.2832); ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fill();
+          return true;
+        });
+        ctx.globalAlpha = 1;
+      }
+      requestAnimationFrame(frame);
+      return { set };
+    })();
+
+    // start with the Haber example so the page is never empty
+    $('preset').value = '0'; $('preset').dispatchEvent(new Event('change'));
+  })();
+  </script>
+</body>
+</html>
