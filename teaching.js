@@ -67,7 +67,7 @@
       const topicText = t.topic.replace(/&/g, 'and');
       const body = `Hi Partho, I'd like help with ${topicText.charAt(0).toLowerCase() + topicText.slice(1)}.`;
       ask.href = FINE
-        ? `mailto:pkpaul@uci.edu?subject=${encodeURIComponent('Tutoring: ' + t.topic)}&body=${encodeURIComponent(body)}`
+        ? `mailto:pk@chemustad.org?subject=${encodeURIComponent('Tutoring: ' + t.topic)}&body=${encodeURIComponent(body)}`
         : SMS + encodeURIComponent(body).replace(/'/g, '%27');
       ask.setAttribute('aria-label', `${FINE ? 'Email' : 'Text'} Partho about ${t.topic}`);
       head.append(ask);

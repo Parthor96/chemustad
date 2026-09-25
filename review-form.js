@@ -5,7 +5,7 @@
 (() => {
   const form = document.getElementById('review-form');
   if (!form) return;
-  const TO = 'pkpaul@uci.edu';
+  const TO = 'pk@chemustad.org';
   const ENDPOINT = 'https://formsubmit.co/ajax/' + TO;
   const msg = document.getElementById('rf-msg');
   const copyBtn = document.getElementById('rf-copy');
