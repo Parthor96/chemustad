@@ -486,3 +486,8 @@ body.rickshaw {
 .tools-heading { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2, #6e6e73); margin-bottom: 12px; }
 .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .tools-grid .tool-card, .tools-grid .tool-card + .tool-card { margin: 0; grid-template-rows: auto auto 1fr auto; }
+
+/* Chemustad tile logo in nav */
+.nav-logo-img { display: flex; align-items: center; flex-shrink: 0; }
+.nav-logo-img img { height: 28px; width: auto; display: block; }
+@media (max-width: 640px) { .nav-logo-img img { height: 22px; } }

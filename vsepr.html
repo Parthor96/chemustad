@@ -27,7 +27,9 @@
     :focus-visible { outline: 2px solid var(--mari); outline-offset: 3px; border-radius: 6px; }
 
     .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
-    .topbar .logo { font-family: var(--display); color: var(--mari); text-decoration: none; font-size: 18px; }
+    .topbar .logo { display: flex; align-items: center; flex-shrink: 0; }
+    .topbar .logo img { height: 28px; width: auto; display: block; }
+    @media (max-width: 640px) { .topbar .logo img { height: 22px; } }
     .topbar nav { display: flex; gap: 18px; font-size: 14px; }
     .topbar nav a { color: var(--cream); text-decoration: none; opacity: .85; }
     .topbar nav a:hover { opacity: 1; text-decoration: underline; }
@@ -106,7 +108,7 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="logo" href="./">Partho K. Paul</a>
+    <a class="logo" href="./"><img src="chemustad-logo.svg" alt="Chemustad" width="223" height="28"></a>
     <nav aria-label="Main">
       <a href="./">Tutoring &amp; practice</a>
       <a class="hide-sm" href="equilibrium.html">Equilibrium</a>
