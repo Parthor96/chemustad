@@ -147,6 +147,25 @@
       .bar { grid-template-columns: 84px minmax(0, 1fr) 80px; font-size: 13px; }
       .flask canvas { height: 230px; }
     }
+    label.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    /* ---- guided mode ---- */
+    .modes { margin-bottom: 16px; }
+    .gstmt { font-size: 14.5px; color: var(--cream); background: var(--night); border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; margin-top: 10px; line-height: 1.5; }
+    .gstmt b { color: var(--mari); }
+    .opt { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; margin-top: 8px; cursor: pointer; background: var(--night); font-size: 15px; }
+    .opt:hover { border-color: var(--dim); }
+    .opt:has(input:checked) { border-color: var(--mari); }
+    .opt input { accent-color: var(--mari); flex: none; }
+    .opt .frac > span { padding: 1px 4px; }
+    .grow { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 8px 10px; align-items: center; margin-top: 8px; }
+    .grow .nm { font-weight: 600; overflow-wrap: anywhere; }
+    .grow select, .grow input { padding: 7px 10px; }
+    .grow input { text-align: right; }
+    .gwork { font-size: 15px; margin-top: 8px; padding: 10px 12px; background: var(--night); border-radius: 10px; border: 1px solid var(--line); overflow-x: auto; }
+    .hintbox { font-size: 13.5px; color: var(--muted); margin-top: 8px; padding: 10px 12px; border-left: 3px solid var(--teal); background: rgba(20,184,166,.08); border-radius: 0 10px 10px 0; }
+    .hintbox[hidden] { display: none; }
+    .card.done h2 .num { background: var(--green); }
+    .link-btn { font: inherit; font-size: 13px; font-weight: 600; background: none; border: 0; color: var(--teal); cursor: pointer; padding: 0; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -163,7 +182,71 @@
   <main class="app">
     <section class="panel" aria-label="Set up the reaction">
       <h1>Equilibrium Explorer</h1>
-      <p class="lead">Type a reaction, give K and the starting amounts, and see how much starting material and product are left at equilibrium. Then disturb it and watch Q chase K.</p>
+      <p class="lead">Work an equilibrium problem one step at a time, with feedback at every step. Or explore freely: type any reaction and watch Q chase K.</p>
+
+      <div class="seg modes" role="group" aria-label="Mode">
+        <button type="button" id="m-guided" aria-pressed="true">Solve step by step</button>
+        <button type="button" id="m-explore" aria-pressed="false">Explore freely</button>
+      </div>
+
+      <div id="guided">
+        <div class="card">
+          <h2>Choose a problem</h2>
+          <label class="sr" for="gprob">Problem</label>
+          <select id="gprob" style="margin-top:8px"></select>
+          <div class="gstmt" id="gstmt"></div>
+        </div>
+
+        <div class="card locked" id="g1">
+          <h2><span class="num">1</span> Write the K expression</h2>
+          <p>Products on top, starting materials on the bottom, each raised to its coefficient. Pure solids and liquids are left out.</p>
+          <div id="gb1"></div>
+          <div class="actions"><button type="button" class="btn" data-g="1">Check</button></div>
+          <div class="msg" id="gm1" role="status"></div>
+        </div>
+
+        <div class="card locked" id="g2">
+          <h2><span class="num">2</span> Which way does it go?</h2>
+          <p>Put the starting amounts into the K expression to get Q, then compare Q with K.</p>
+          <div id="gb2"></div>
+          <div class="actions"><button type="button" class="btn" data-g="2">Check</button></div>
+          <div class="msg" id="gm2" role="status"></div>
+        </div>
+
+        <div class="card locked" id="g3">
+          <h2><span class="num">3</span> Fill in the Change row</h2>
+          <p>Let x be how far the reaction goes. Each species changes by its coefficient × x: minus if it is used up, plus if it forms.</p>
+          <div id="gb3"></div>
+          <div class="actions"><button type="button" class="btn" data-g="3">Check</button></div>
+          <div class="msg" id="gm3" role="status"></div>
+        </div>
+
+        <div class="card locked" id="g4">
+          <h2><span class="num">4</span> Set up the equation</h2>
+          <p>Equilibrium = Initial + Change. Put the equilibrium row into the K expression.</p>
+          <div id="gb4"></div>
+          <div class="actions"><button type="button" class="btn" data-g="4">Check</button></div>
+          <div class="msg" id="gm4" role="status"></div>
+        </div>
+
+        <div class="card locked" id="g5">
+          <h2><span class="num">5</span> Solve for x</h2>
+          <div id="gb5"></div>
+          <div class="actions"><button type="button" class="btn" data-g="5">Check</button><button type="button" class="link-btn" id="ghint">Hint</button><button type="button" class="link-btn" id="gshow" hidden>Show me the answer</button></div>
+          <div class="hintbox" id="ghintbox" hidden></div>
+          <div class="msg" id="gm5" role="status"></div>
+        </div>
+
+        <div class="card locked" id="g6">
+          <h2><span class="num">6</span> Equilibrium concentrations</h2>
+          <p>Plug x back into the Equilibrium row.</p>
+          <div id="gb6"></div>
+          <div class="actions"><button type="button" class="btn" data-g="6">Check</button></div>
+          <div class="msg" id="gm6" role="status"></div>
+        </div>
+      </div>
+
+      <div id="explore" hidden>
 
       <div class="card">
         <h2><span class="num">1</span> Reaction</h2>
@@ -219,6 +302,7 @@
           <button type="button" class="btn ghost" id="reset">Start over</button>
         </div>
         <div class="msg" id="d-msg" role="status"></div>
+      </div>
       </div>
     </section>
 
@@ -522,7 +606,7 @@
       const tot = arr => SP.reduce((a, s, i) => a + (s.inc ? arr[i] : 0), 0);
       if (!dotScale || tot(cCur) * dotScale > 170 || tot(cCur) * dotScale < 12) dotScale = 70 / Math.max(tot(from), tot(cCur), 1e-300);
       const counts = arr => SP.map((s, i) => s.inc ? Math.round(arr[i] * dotScale) : 0);
-      if (phase === 'first') { flask.set(counts(cDist), false); setTimeout(() => flask.set(counts(cCur), true), 700); }
+      if (phase === 'first') { const tgt = counts(cCur), sp0 = SP; flask.set(counts(cDist), false); setTimeout(() => { if (SP === sp0) flask.set(tgt, true); }, 700); }
       else flask.set(counts(cCur), animate);
       const unit = units === 'c' ? 'M' : 'atm';
       $('scale-note').textContent = `1 dot ≈ ${num(1 / dotScale).replace(/<\/?sup>/g, '').replace(' × 10', 'e')} ${unit}. Solids and pure liquids are not drawn.`;
@@ -536,7 +620,7 @@
       if (phase === 'first') {
         tag.className = 'tag eq'; tag.textContent = 'At equilibrium';
         $('verdict').innerHTML = verdictText(qStart, true) + ' At equilibrium Q = K = ' + num(K) + '.';
-        setTimeout(() => drawQK(K, 'eq'), 700);
+        { const sp0 = SP; setTimeout(() => { if (SP === sp0 && (mode === 'e' || G.done)) drawQK(K, 'eq'); }, 700); }
       } else if (phase === 'disturbed') {
         const dir = !(qNow > 0) ? 1 : !isFinite(qNow) ? -1 : Math.abs(Math.log(qNow / K)) < 1e-9 ? 0 : qNow < K ? 1 : -1;
         tag.className = 'tag ' + (dir > 0 ? 'fwd' : dir < 0 ? 'rev' : 'eq');
@@ -569,7 +653,7 @@
       const vis = SP.map((s, i) => i).filter(i => SP[i].inc);
       const mx = Math.max(...vis.map(i => Math.max(from[i], cCur[i])), 1e-300);
       $('bars').innerHTML = vis.map(i => `<div class="bar"><span class="nm">${spHTML(SP[i].name)}</span><span class="trk"><span class="was" style="width:${from[i] / mx * 100}%"></span><span class="now" style="width:${(phase === 'first' ? from[i] : cCur[i]) / mx * 100}%;background:${SP[i].color}"></span></span><span class="v">${num(cCur[i])} ${unit}</span></div>`).join('');
-      if (phase === 'first') setTimeout(() => $('bars').querySelectorAll('.now').forEach((b, k) => { b.style.width = cCur[vis[k]] / mx * 100 + '%'; }), 700);
+      if (phase === 'first') { const cc = cCur; setTimeout(() => $('bars').querySelectorAll('.now').forEach((b, k) => { if (cc && cc[vis[k]] != null) b.style.width = cc[vis[k]] / mx * 100 + '%'; }), 700); }
 
       // ICE
       renderICE(phase);
@@ -689,8 +773,283 @@
       return { set };
     })();
 
-    // start with the Haber example so the page is never empty
+    // ---------- guided mode: step-by-step ICE problem ----------
+    const GPROBS = [
+      { name: 'Hydrogen iodide (K = 49)', eq: 'H2(g) + I2(g) <=> 2HI(g)', K: '49', c0: [1, 1, 0] },
+      { name: 'Fischer esterification (K = 4)', eq: 'CH3COOH + CH3CH2OH <=> CH3COOCH2CH3 + H2O', K: '4', c0: [1, 1, 0, 0] },
+      { name: 'N2O4 ⇌ 2 NO2 (quadratic)', eq: 'N2O4(g) <=> 2NO2(g)', K: '0.36', c0: [1, 0] },
+      { name: 'Acetic acid in water (Ka, small x)', eq: 'CH3COOH(aq) + H2O(l) <=> CH3COO-(aq) + H3O+(aq)', K: '1.8e-5', c0: [0.1, 0, 0, 0] },
+      { name: 'Mixture with some product (calculate Q)', eq: 'H2(g) + I2(g) <=> 2HI(g)', K: '49', c0: [0.5, 0.5, 1] },
+      { name: 'Starting from product only (runs in reverse)', eq: 'H2(g) + I2(g) <=> 2HI(g)', K: '49', c0: [0, 0, 2] }
+    ];
+    const G = { stage: 0, done: false, loaded: false, opts: {}, tries: 0 };
+    let mode = 'g';
+    if (location.search.includes('debug')) window.__G = G;
+    const incIdx = () => SP.map((s, i) => i).filter(i => SP[i].inc);
+    const br = i => `[${spHTML(SP[i].name)}]`;
+    const frac = (top, bot) => bot ? `<span class="frac"><span>${top || '1'}</span><span>${bot}</span></span>` : (top || '1');
+    const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const plain = h => h.replace(/<[^>]+>/g, '');
+    const f3 = v => v === 0 ? '0' : (Math.abs(v) >= 1e-3 && Math.abs(v) < 1e4 ? Number(v).toPrecision(3) : num(v));
+    const say = (n, html, ok) => { const e = $('gm' + n); e.innerHTML = html; e.className = 'msg ' + (ok ? 'ok' : 'err'); };
+    const gcard = (n, state) => { const c = $('g' + n); c.classList.toggle('locked', state === 'locked'); c.classList.toggle('done', state === 'done'); };
+
+    $('gprob').innerHTML = GPROBS.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join('') + '<option value="mine">My own reaction (from Explore)</option>';
+    $('gprob').addEventListener('change', () => loadProblem($('gprob').value));
+
+    function loadProblem(v) {
+      let eqStr, kStr, c0;
+      if (v === 'mine') {
+        if (!SP.length) { $('gstmt').innerHTML = 'Set up a reaction in <b>Explore freely</b> first, then come back.'; return; }
+        eqStr = $('eq').value; kStr = $('k').value;
+        c0 = SP.map(() => 0); $('amounts').querySelectorAll('input').forEach(inp => { c0[+inp.dataset.i] = parseNum(inp.value) || 0; });
+      } else {
+        const p = GPROBS[+v]; eqStr = p.eq; kStr = p.K; c0 = p.c0.slice();
+        $('eq').value = eqStr; readEq(); $('k').value = kStr;
+        $('amounts').querySelectorAll('input').forEach(inp => { inp.value = c0[+inp.dataset.i]; });
+      }
+      setUnits('c');
+      K = parseNum(kStr);
+      const r = solve(c0, K);
+      if (!(K > 0) || !r) { $('gstmt').textContent = 'This reaction cannot be set up as a problem. Check it in Explore.'; return; }
+      Object.assign(G, { c0, r, stage: 0, done: false, loaded: true, opts: {}, tries: 0 });
+      G.Q0 = Q(c0);
+      G.dir = !(G.Q0 > 0) ? 1 : !isFinite(G.Q0) ? -1 : Math.abs(Math.log(G.Q0 / K)) < 1e-9 ? 0 : (G.Q0 < K ? 1 : -1);
+      G.x = Math.abs(r.x);
+      G.eqc = r.c;
+      // statement
+      const start = incIdx().map(i => `${f3(c0[i])} M ${spHTML(SP[i].name)}`).join(', ');
+      const excl = SP.filter(s => !s.inc).map(s => spHTML(s.name) + ' (' + s.phase + ')');
+      $('gstmt').innerHTML = `<b>${eqLine()}</b><br>Start: ${start}.${excl.length ? ' ' + excl.join(', ') + ' is a pure ' + (SP.find(s => !s.inc).phase === 's' ? 'solid' : 'liquid') + '.' : ''} K<sub>c</sub> = ${num(K)}.<br>Find the equilibrium concentrations.`;
+      for (let n = 1; n <= 6; n++) { gcard(n, n === 1 ? 'open' : 'locked'); $('gm' + n).textContent = ''; $('gb' + n).innerHTML = ''; }
+      $('ghintbox').hidden = true; $('gshow').hidden = true;
+      buildStep1();
+      gView();
+    }
+    function eqLine() {
+      return SP.filter(s => s.side === 'r').map(s => (s.coef !== 1 ? s.coef + ' ' : '') + spHTML(s.name)).join(' + ') + ' ⇌ ' +
+             SP.filter(s => s.side === 'p').map(s => (s.coef !== 1 ? s.coef + ' ' : '') + spHTML(s.name)).join(' + ');
+    }
+
+    // multiple choice helpers
+    function mc(n, options) {
+      const uniq = []; const seen = new Set();
+      options.forEach(o => { const k = plain(o.html); if (!seen.has(k)) { seen.add(k); uniq.push(o); } });
+      const opts = shuffle(uniq);
+      G.opts[n] = opts;
+      return opts.map((o, k) => `<label class="opt"><input type="radio" name="gq${n}" value="${k}"><span>${o.html}</span></label>`).join('');
+    }
+    function mcPick(n) { const el = document.querySelector(`input[name="gq${n}"]:checked`); return el ? G.opts[n][+el.value] : null; }
+
+    // step 1: K expression
+    function kExpr(o) {
+      const list = side => SP.map((s, i) => i).filter(i => SP[i].side === side && (SP[i].inc || o.withExcluded));
+      const term = i => { const c = SP[i].coef; if (o.mult) return (c !== 1 ? c : '') + br(i); return br(i) + (!o.noExp && c !== 1 ? `<sup>${c}</sup>` : ''); };
+      const join = arr => arr.map(term).join(o.sum && arr.length > 1 ? ' + ' : '');
+      let top = join(list('p')), bot = join(list('r'));
+      if (o.invert) [top, bot] = [bot, top];
+      return 'K<sub>c</sub> = ' + frac(top, bot);
+    }
+    function buildStep1() {
+      const anyCoef = SP.some(s => s.inc && s.coef !== 1), anyExcl = SP.some(s => !s.inc);
+      const o = [{ html: kExpr({}), ok: true }, { html: kExpr({ invert: true }), why: 'Upside down: products go on top, starting materials on the bottom.' }];
+      if (anyCoef) { o.push({ html: kExpr({ noExp: true }), why: 'Coefficients become exponents.' }); o.push({ html: kExpr({ mult: true }), why: 'Coefficients are exponents, not multipliers.' }); }
+      if (anyExcl) o.push({ html: kExpr({ withExcluded: true }), why: 'Pure solids and liquids are left out of K; their “concentration” does not change.' });
+      if (SP.filter(s => s.inc && s.side === 'r').length > 1) o.push({ html: kExpr({ sum: true }), why: 'Concentrations multiply; they are never added in K.' });
+      const pick = [o[0]].concat(shuffle(o.slice(1)).slice(0, 3));
+      $('gb1').innerHTML = mc(1, pick);
+    }
+
+    // step 2: Q and direction
+    function buildStep2() {
+      const q = G.Q0; let html = '';
+      if (!(q > 0)) html += `<div class="gwork">No product at the start, so the top of the K expression is 0 and <b>Q = 0</b>.</div>`;
+      else if (!isFinite(q)) html += `<div class="gwork">A starting material is at 0, so the bottom of the K expression is 0 and <b>Q is infinite</b>.</div>`;
+      else html += `<div class="grow"><label for="gq" class="nm">Starting Q =</label><input id="gq" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 0.25"></div>`;
+      html += mc(2, [
+        { html: 'Q &lt; K: too little product. It shifts <b>right</b>, toward products.', d: 1 },
+        { html: 'Q &gt; K: too much product. It shifts <b>left</b>, toward starting materials.', d: -1 },
+        { html: 'Q = K: already at equilibrium. Nothing changes.', d: 0 }
+      ]);
+      $('gb2').innerHTML = html;
+    }
+
+    // step 3: change row
+    function chgStr(v) { return v === 0 ? '0' : (v > 0 ? '+' : '−') + (Math.abs(v) === 1 ? '' : Math.abs(v)) + 'x'; }
+    function buildStep3() {
+      const maxc = Math.max(2, ...incIdx().map(i => SP[i].coef));
+      const vals = []; for (let k = -maxc; k <= maxc; k++) if (k) vals.push(k);
+      $('gb3').innerHTML = (G.dir < 0 ? '<p class="hint" style="margin-top:0">Here x is how far it runs to the <b>left</b>.</p>' : '') + incIdx().map(i =>
+        `<div class="grow"><label class="nm" for="gc${i}">${spHTML(SP[i].name)}</label><select id="gc${i}"><option value="">Choose…</option>${vals.map(v => `<option value="${v}">${chgStr(v)}</option>`).join('')}</select></div>`).join('');
+    }
+    const chgOk = i => G.dir * (SP[i].side === 'p' ? 1 : -1) * SP[i].coef;
+
+    // step 4: equation in x
+    function eqTerm(i, o) {
+      const nu = o.oneX ? 1 : SP[i].coef; let sg = G.dir * (SP[i].side === 'p' ? 1 : -1); if (o.flip) sg = -sg;
+      const xs = (nu === 1 ? '' : nu) + 'x', c0 = G.c0[i];
+      if (c0 === 0) return { t: (sg > 0 ? '' : '−') + xs, compound: false };
+      return { t: `${f3(c0)} ${sg > 0 ? '+' : '−'} ${xs}`, compound: true };
+    }
+    function eqExpr(o) {
+      const side = s => incIdx().filter(i => SP[i].side === s).map(i => {
+        const e = eqTerm(i, o), c = SP[i].coef, exp = !o.noExp && c !== 1;
+        const wrap = e.compound || exp;
+        return (wrap ? `(${e.t})` : e.t) + (exp ? `<sup>${c}</sup>` : '');
+      }).join('');
+      let top = side('p'), bot = side('r'); if (o.invert) [top, bot] = [bot, top];
+      return `${num(K)} = ` + frac(top, bot);
+    }
+    function buildStep4() {
+      const anyCoef = incIdx().some(i => SP[i].coef !== 1);
+      const o = [{ html: eqExpr({}), ok: true }, { html: eqExpr({ flip: true }), why: 'Check the signs: species that are used up get “−”, species that form get “+”.' }, { html: eqExpr({ invert: true }), why: 'Upside down: keep products on top, as in step 1.' }];
+      if (anyCoef) { o.push({ html: eqExpr({ oneX: true }), why: 'Each change is coefficient × x, so 2 HI changes by 2x, not x.' }); o.push({ html: eqExpr({ noExp: true }), why: 'Keep the exponents from the K expression.' }); }
+      const pick = [o[0]].concat(shuffle(o.slice(1)).slice(0, 3));
+      $('gb4').innerHTML = mc(4, pick);
+    }
+
+    // step 5: solve for x
+    function buildStep5() {
+      $('gb5').innerHTML = `<div class="gwork">${eqExpr({})}</div><div class="grow"><label class="nm" for="gx">x =</label><input id="gx" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 0.25"></div>`;
+      G.tries = 0; $('gshow').hidden = true; $('ghintbox').hidden = true;
+    }
+    function hintText() {
+      const idx = incIdx(), terms = { top: {}, bot: {} }; let degTop = 0, degBot = 0;
+      idx.forEach(i => {
+        const used = G.dir * (SP[i].side === 'p' ? 1 : -1) < 0;
+        const key = eqTerm(i, {}).t, where = SP[i].side === 'p' ? 'top' : 'bot';
+        terms[where][key] = (terms[where][key] || 0) + SP[i].coef;
+        if (where === 'top') degTop += SP[i].coef; else degBot += SP[i].coef;
+      });
+      const square = [terms.top, terms.bot].every(t => Object.values(t).every(e => e % 2 === 0));
+      const deg = Math.max(degTop, degBot);
+      const usedUp = idx.filter(i => G.dir * (SP[i].side === 'p' ? 1 : -1) < 0);
+      const small = usedUp.length && usedUp.every(i => G.c0[i] > 0) && (G.dir > 0 ? K < 1e-3 : K > 1e3);
+      if (small) return 'K is tiny, so very little reacts: x is much smaller than the starting amounts. Replace each “starting amount − x” with just the starting amount, then solve the simpler equation. Afterwards check that x is under 5% of the starting amount.';
+      if (square) return 'Both sides are perfect squares. Take the square root of both sides first; that leaves a simple linear equation in x.';
+      if (deg <= 2) return 'Multiply out and rearrange into ax² + bx + c = 0, then use the quadratic formula. Keep the root that gives no negative concentrations.';
+      return 'This one is higher than quadratic. Guess x, compute Q, and adjust: if Q is too small, raise x; if too big, lower it. Two or three rounds gets you close.';
+    }
+    $('ghint').addEventListener('click', () => { $('ghintbox').textContent = hintText(); $('ghintbox').hidden = false; });
+    $('gshow').addEventListener('click', () => { $('gx').value = String(Number(G.x.toPrecision(3))); check(5); });
+
+    // step 6: equilibrium concentrations
+    function buildStep6() {
+      $('gb6').innerHTML = incIdx().map(i => `<div class="grow"><label class="nm" for="ge${i}">[${spHTML(SP[i].name)}] = ${eqTerm(i, {}).t.replace(/^−/, '−')}</label><input id="ge${i}" type="text" inputmode="decimal" autocomplete="off" placeholder="M"></div>`).join('');
+    }
+
+    const near = (v, t, rel) => Math.abs(v - t) <= Math.max(rel * Math.abs(t), 1e-12);
+    document.querySelectorAll('button[data-g]').forEach(b => b.addEventListener('click', () => check(+b.dataset.g)));
+    document.getElementById('guided').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('input[type=text]')) { const card = e.target.closest('.card'); const b = card && card.querySelector('button[data-g]'); if (b) b.click(); } });
+
+    function advance(n) {
+      gcard(n, 'done'); G.stage = n;
+      const next = n + 1;
+      if (next <= 6) {
+        gcard(next, 'open');
+        ({ 2: buildStep2, 3: buildStep3, 4: buildStep4, 5: buildStep5, 6: buildStep6 })[next]();
+        const first = $('g' + next).querySelector('input, select'); if (first && !window.matchMedia('(max-width: 900px)').matches) first.focus({ preventScroll: false });
+      }
+      gView();
+    }
+    function check(n) {
+      if (n === 1 || n === 4) {
+        const p = mcPick(n); if (!p) return say(n, 'Pick one of the options.', false);
+        if (p.ok) { say(n, n === 1 ? 'Correct.' : 'Correct. Now solve it for x.', true); advance(n); }
+        else say(n, p.why, false);
+        return;
+      }
+      if (n === 2) {
+        if ($('gq')) {
+          const q = parseNum($('gq').value);
+          if (!isFinite(q)) return say(2, 'Enter your value of Q first.', false);
+          if (!near(q, G.Q0, 0.03)) return say(2, `Not quite. Put the starting amounts into your K expression from step 1. (You entered ${num(q)}.)`, false);
+        }
+        const p = mcPick(2); if (!p) return say(2, 'Pick which way it shifts.', false);
+        if (p.d !== G.dir) return say(2, `Compare Q = ${G.Q0 > 0 && isFinite(G.Q0) ? num(G.Q0) : (G.Q0 > 0 ? '∞' : '0')} with K = ${num(K)}. ${G.dir > 0 ? 'Q is smaller' : G.dir < 0 ? 'Q is larger' : 'They are equal'}.`, false);
+        if (G.dir === 0) { say(2, 'Correct: Q = K, so the mixture is already at equilibrium.', true); gcard(2, 'done'); for (let k = 3; k <= 6; k++) gcard(k, 'locked'); return finish(); }
+        say(2, `Correct: Q ${G.dir > 0 ? '&lt;' : '&gt;'} K, so it shifts ${G.dir > 0 ? 'right, making product' : 'left, making starting material'}.`, true);
+        return advance(2);
+      }
+      if (n === 3) {
+        const wrong = incIdx().filter(i => +$('gc' + i).value !== chgOk(i));
+        if (!wrong.length) { say(3, 'Correct.', true); return advance(3); }
+        const i = wrong[0], v = +$('gc' + i).value;
+        if (!$('gc' + i).value) return say(3, 'Choose a change for every species.', false);
+        if (Math.sign(v) !== Math.sign(chgOk(i))) return say(3, `Check the sign for ${spHTML(SP[i].name)}: it ${Math.sign(chgOk(i)) < 0 ? 'is used up, so it gets “−”' : 'forms, so it gets “+”'}.`, false);
+        return say(3, `Check ${spHTML(SP[i].name)}: its coefficient is ${SP[i].coef}, so it changes by ${chgStr(chgOk(i))}.`, false);
+      }
+      if (n === 5) {
+        const v = Math.abs(parseNum($('gx').value));
+        if (!isFinite(v)) return say(5, 'Enter a number for x.', false);
+        if (near(v, G.x, 0.03)) {
+          const small = incIdx().filter(i => G.dir * (SP[i].side === 'p' ? 1 : -1) < 0 && G.c0[i] > 0);
+          const pct = small.length ? Math.max(...small.map(i => SP[i].coef * G.x / G.c0[i])) * 100 : null;
+          say(5, `Correct: x = ${num(G.x)} M.` + (pct !== null && pct < 5 ? ` That is ${pct < 0.1 ? 'under 0.1' : pct.toFixed(1)}% of the starting amount, so the small-x shortcut is fine here.` : ''), true);
+          return advance(5);
+        }
+        G.tries++; if (G.tries >= 2) $('gshow').hidden = false;
+        const bad = incIdx().some(i => { const c = G.c0[i] + chgOk(i) * v; return c < -1e-12; });
+        return say(5, bad ? 'That x makes a concentration negative. x must be smaller.' : 'Not quite. Put your x into the equation: is the right side equal to K? Try the hint.', false);
+      }
+      if (n === 6) {
+        const idx = incIdx(); const mx = Math.max(...idx.map(i => G.eqc[i]));
+        const wrong = idx.filter(i => { const v = parseNum($('ge' + i).value); return !(isFinite(v) && (near(v, G.eqc[i], 0.03) || Math.abs(v - G.eqc[i]) <= 0.001 * mx)); });
+        if (wrong.length) { const i = wrong[0]; return say(6, `Check ${spHTML(SP[i].name)}: ${eqTerm(i, {}).t} with x = ${num(G.x)}.`, false); }
+        say(6, 'All correct. Watch the flask on the right reach equilibrium.', true);
+        gcard(6, 'done'); G.stage = 6;
+        return finish();
+      }
+    }
+    function finish() {
+      G.done = true; $('pos-card').hidden = false;
+      solveNow();
+      const m = $('gm' + (G.dir === 0 ? 2 : 6));
+      m.innerHTML += ' <button type="button" class="link-btn" id="gtoexp">Now disturb it in Explore ›</button>';
+      $('gtoexp').addEventListener('click', () => setMode('e'));
+    }
+
+    // right-hand panels while working the problem
+    function gView() {
+      if (mode !== 'g') return;
+      if (G.done) return;
+      $('pos-card').hidden = true;
+      const idx = incIdx();
+      // K expression card
+      $('kexpr').innerHTML = `<span style="flex-basis:100%;color:var(--muted);font-size:15px">${eqLine()}</span>` + (G.stage >= 1 ? kExpr({}).replace('K<sub>c</sub>', '<span class="kname">K<sub>c</sub></span>') + `<span class="kval">= ${num(K)}</span>` : '<span class="kname">K<sub>c</sub></span> = <span class="kval">? (step 1)</span>');
+      // flask at the start
+      const tot = idx.reduce((a, i) => a + G.c0[i], 0);
+      dotScale = 70 / Math.max(tot, 1e-300);
+      flask.set(SP.map((s, i) => s.inc ? Math.round(G.c0[i] * dotScale) : 0), false);
+      $('legend').innerHTML = idx.map(i => `<span><i style="background:${SP[i].color}"></i><b>${spHTML(SP[i].name)}</b> ${f3(G.c0[i])} M</span>`).join('');
+      $('scale-note').textContent = 'Starting mixture. Finish the steps to watch it react.';
+      $('state-tag').className = 'tag'; $('state-tag').textContent = 'Start';
+      // Q vs K
+      if (G.stage >= 2) { drawQK(G.Q0, 'first'); $('verdict').innerHTML = verdictText(G.Q0, true); }
+      else { $('qk').innerHTML = ''; $('verdict').textContent = 'Step 2 compares Q with K.'; }
+      $('go').hidden = true;
+      // ICE table, filled in as the steps are done
+      let h = `<thead><tr><th scope="col">M</th>${idx.map(i => `<th scope="col">${spHTML(SP[i].name)}</th>`).join('')}</tr></thead><tbody>`;
+      h += `<tr><td>Initial</td>${idx.map(i => `<td>${f3(G.c0[i])}</td>`).join('')}</tr>`;
+      h += `<tr><td>Change</td>${idx.map(i => `<td>${G.stage >= 3 ? chgStr(chgOk(i)) : '?'}</td>`).join('')}</tr>`;
+      h += `<tr class="e"><td>Equilibrium</td>${idx.map(i => `<td>${G.stage >= 3 ? eqTerm(i, {}).t : '?'}</td>`).join('')}</tr>`;
+      $('ice').innerHTML = h + '</tbody>';
+      $('xline').innerHTML = G.stage >= 5 ? `x = ${num(G.x)} M` : 'The table fills in as you finish each step.';
+    }
+
+    function setMode(m) {
+      mode = m;
+      $('m-guided').setAttribute('aria-pressed', String(m === 'g')); $('m-explore').setAttribute('aria-pressed', String(m === 'e'));
+      $('guided').hidden = m !== 'g'; $('explore').hidden = m !== 'e';
+      if (m === 'e') { $('pos-card').hidden = false; if (SP.length) solveNow(); }
+      else { if (!G.loaded) loadProblem($('gprob').value); else if (!G.done) gView(); else $('pos-card').hidden = false; }
+    }
+    $('m-guided').addEventListener('click', () => setMode('g'));
+    $('m-explore').addEventListener('click', () => setMode('e'));
+
+    // start: Haber example loaded in Explore, first guided problem shown
     $('preset').value = '0'; $('preset').dispatchEvent(new Event('change'));
+    if (location.hash === '#explore') setMode('e'); else setMode('g');
   })();
   </script>
 </body>
