@@ -575,3 +575,14 @@ body.rickshaw {
     .about-cred { font-size: 12px; }
     .about + .reviews, .about + .reviews .container { padding-top: 40px; }
 }
+
+/* Phone nav: logo + Practice / About / Text Partho must fit without scrolling */
+@media (max-width: 440px) {
+    .nav-logo-img img { height: 17px; width: auto; }
+    .nav-container { gap: 10px; }
+    .nav-links { gap: 11px; }
+    .nav-link { font-size: 12.5px; }
+}
+@media (max-width: 359px) {
+    .nav-links li:first-of-type + li { display: none; } /* drop "Practice" on the smallest phones */
+}
