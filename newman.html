@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Newman Navigator · Newman Projections &amp; Conformations in 3D | Partho K. Paul</title>
+  <meta name="description" content="Type, pick, or draw a molecule, pick a bond, and sight down it. Rotate the back carbon and watch the Newman projection, dihedral angle, and torsional energy change.">
+  <link rel="canonical" href="https://chemustad.org/newman.html">
+  <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" href="fonts/shrikhand-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <style>
+    @font-face { font-family: "Shrikhand"; src: url(fonts/shrikhand-latin.woff2) format("woff2"); font-display: swap; }
+    :root {
+      --night: #17131d; --night-2: #221b2a; --night-3: #2d2436; --line: #3d3346;
+      --cream: #fbf3e2; --muted: #c9bfae; --dim: #9d9386;
+      --red: #e53935; --mari: #ffb300; --teal: #14b8a6; --pink: #ff5c93; --blue: #2f6fe0; --green: #43c55a; --ink: #0f0b13;
+      --display: "Shrikhand", Georgia, serif;
+      --font: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { background: var(--night); color: var(--cream); font-family: var(--font); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    a { color: var(--mari); }
+    :focus-visible { outline: 2px solid var(--mari); outline-offset: 3px; border-radius: 6px; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+    .topbar .logo { display: flex; align-items: center; flex-shrink: 0; }
+    .topbar .logo img { height: 28px; width: auto; display: block; }
+    @media (max-width: 640px) { .topbar .logo img { height: 22px; } }
+    .topbar nav { display: flex; gap: 18px; font-size: 14px; }
+    .topbar nav a { color: var(--cream); text-decoration: none; opacity: .85; }
+    .topbar nav a:hover { opacity: 1; text-decoration: underline; }
+    .strip { height: 22px; background: url(border.svg) repeat-x center / auto 22px; }
+
+    .app { display: grid; grid-template-columns: 400px minmax(0, 1fr); height: calc(100vh - 57px - 22px); min-height: 560px; }
+    .panel { overflow-y: auto; padding: 24px 22px 40px; border-right: 1px solid var(--line); background: var(--night); }
+    .viewer { position: relative; background: radial-gradient(circle at 50% 45%, #2a2133, #120e16 70%); }
+    #canvas { position: absolute; inset: 0; }
+    #canvas canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+    h1 { font-family: var(--display); font-weight: 400; color: var(--mari); font-size: 32px; line-height: 1.1; }
+    .lead { color: var(--muted); font-size: 14px; margin: 6px 0 20px; }
+
+    .mode { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--night-3); border-radius: 999px; margin-bottom: 18px; }
+    .mode button { font: inherit; font-size: 14px; font-weight: 600; color: var(--cream); background: transparent; border: 0; border-radius: 999px; padding: 9px 10px; cursor: pointer; }
+    .mode button[aria-pressed="true"] { background: var(--mari); color: var(--night); }
+
+    .card { background: var(--night-2); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .card h2 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .card h2 .num { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--teal); color: var(--night); font-size: 13px; border: 2px solid #0f0b13; }
+    .card p { font-size: 13.5px; color: var(--muted); margin: 6px 0 10px; }
+    .card.locked { opacity: .4; pointer-events: none; }
+    .card.done h2 .num { background: var(--green); }
+    .row { display: flex; gap: 8px; }
+    label.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    select, input[type=number] { font: inherit; color: var(--cream); background: var(--night); border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; }
+    select { width: 100%; }
+    input[type=number] { width: 90px; text-align: center; }
+    select:focus, input:focus { border-color: var(--mari); outline: none; }
+    .btn { font: inherit; font-weight: 700; font-size: 14px; color: var(--night); background: var(--mari); border: 2px solid #0f0b13; border-radius: 999px; padding: 8px 16px; cursor: pointer; box-shadow: 3px 3px 0 var(--red); }
+    .btn:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--red); }
+    .msg { font-size: 13px; margin-top: 8px; min-height: 1em; }
+    .msg.ok { color: var(--green); } .msg.err { color: #ff8a80; }
+    .hint { font-size: 12.5px; color: var(--dim); margin-top: 6px; }
+
+
+    /* result overlay */
+    .result { position: absolute; top: 16px; right: 16px; max-width: 280px; background: rgba(23,19,29,.88); border: 2px solid var(--mari); box-shadow: 5px 5px 0 var(--red); border-radius: 14px; padding: 14px 16px; backdrop-filter: blur(6px); }
+    .result[hidden] { display: none; }
+    .result .k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+    .result .v { font-weight: 700; margin-bottom: 8px; }
+    .result .axe-big { font-family: var(--display); color: var(--mari); font-size: 30px; line-height: 1.1; margin-bottom: 6px; }
+    .result .axe-big sub { font-family: var(--font); font-weight: 700; font-size: 16px; }
+    .legend { position: absolute; left: 16px; bottom: 14px; display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); background: rgba(0,0,0,.35); padding: 6px 12px; border-radius: 999px; pointer-events: none; }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+    .nogl { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); }
+
+    @media (max-width: 860px) {
+      .app { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 0; }
+      .viewer { order: -1; }
+      .panel { border-right: 0; border-top: 1px solid var(--line); overflow: visible; }
+      .viewer { height: auto; min-height: 0; display: flex; flex-direction: column; }
+      #canvas { position: relative; inset: auto; height: 50vh; min-height: 320px; }
+      .legend { position: static; margin: 0 12px 10px; align-self: flex-start; }
+      .result { position: static; margin: 0 12px 14px; max-width: none; padding: 10px 14px; grid-template-columns: auto 1fr; gap: 0 16px; align-items: center; }
+      .result:not([hidden]) { display: grid; }
+      .result .axe-big { grid-row: span 3; margin: 0; }
+      .result .k { display: none; }
+      .result .v { margin: 0; font-size: 14px; }
+      .topbar nav a.hide-sm { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  </style>
+  <link rel="stylesheet" href="newman/newman.css?v=2">
+  <script src="vendor/three.min.js" defer></script>
+  <script src="vendor/OrbitControls.js" defer></script>
+  <script src="newman/chem.js?v=2" defer></script>
+  <script src="newman/geom.js?v=2" defer></script>
+  <script src="newman/sketch.js?v=2" defer></script>
+  <script src="newman/newman2d.js?v=2" defer></script>
+  <script src="newman/app.js?v=2" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="./"><img src="chemustad-logo.svg" alt="Chemustad" width="223" height="28"></a>
+    <nav aria-label="Main">
+      <a href="./">Tutoring &amp; practice</a>
+      <a class="hide-sm" href="vsepr.html">VSEPR</a>
+      <a class="hide-sm" href="equilibrium.html">Equilibrium</a>
+      <a class="hide-sm" href="research/">Research</a>
+    </nav>
+  </header>
+  <div class="strip" aria-hidden="true"></div>
+
+  <main class="app">
+    <section class="panel" aria-label="Newman steps">
+      <h1>Newman Navigator</h1>
+      <p class="lead">Pick a molecule, choose a bond, and look straight down it. The circle is the back carbon; lines to the centre belong to the front carbon.</p>
+
+      <div class="mode mode-3" role="group" aria-label="Input">
+        <button type="button" id="mode-type" aria-pressed="true">Type</button>
+        <button type="button" id="mode-draw" aria-pressed="false">Draw</button>
+        <button type="button" id="mode-presets" aria-pressed="false">Presets</button>
+      </div>
+
+      <div class="card" id="c-input">
+        <h2><span class="num">1</span> Choose a molecule</h2>
+        <div id="in-type">
+          <label class="lbl" for="mol-input">Name, condensed formula, or SMILES</label>
+          <div class="row">
+            <input id="mol-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="butane, CH3CH2OH, CC(C)CC">
+            <button type="button" class="btn" id="mol-go">Build</button>
+          </div>
+          <div class="msg" id="mol-msg" role="status"></div>
+          <div class="choices" id="mol-choices" role="group" aria-label="Which molecule" hidden></div>
+          <p class="hint">Examples: <button type="button" class="ex">2-methylbutane</button> · <button type="button" class="ex">ClCH2CH2Cl</button> · <button type="button" class="ex">HOCH2CH2OH</button> · <button type="button" class="ex">C1CCCCC1</button> · <button type="button" class="ex">C4H10</button>. On iPad you can write in this box with Apple Pencil.</p>
+        </div>
+
+        <div id="in-draw" hidden>
+          <div class="sk-tools" role="toolbar" aria-label="Drawing tools">
+            <button type="button" class="chip" id="sk-chain" aria-pressed="true">Tap to place</button>
+            <button type="button" class="chip" id="sk-free" aria-pressed="false">Freehand</button>
+            <button type="button" class="chip" id="sk-finish">Finish chain</button>
+            <button type="button" class="chip" id="sk-undo" disabled>Undo</button>
+            <button type="button" class="chip" id="sk-clear" disabled>Clear</button>
+          </div>
+          <div class="sk-wrap">
+            <canvas id="sketch" tabindex="0" aria-label="Drawing area for a skeletal structure. Use the Type tab for a keyboard alternative."></canvas>
+            <div id="sk-picker" class="sk-picker" hidden></div>
+          </div>
+          <div class="msg" id="sk-msg" role="status"></div>
+          <div class="row"><button type="button" class="btn" id="sk-build" disabled>Build 3D</button></div>
+          <p class="hint">Draw zigzag lines; every corner and end is a carbon. Tap a corner to change the atom, tap a bond to make it double or triple.</p>
+        </div>
+
+        <div id="in-presets" hidden>
+          <label class="lbl" for="preset">Preset</label>
+          <select id="preset"></select>
+        </div>
+      </div>
+
+      <div class="card locked" id="c-bond">
+        <h2><span class="num">2</span> Pick a bond</h2>
+        <p>Tap a bond in the 3D model, or pick one here.</p>
+        <p class="hint lock-note" id="bond-lock-note" hidden></p>
+        <div class="bond-list" id="bond-list" role="group" aria-label="Bonds"></div>
+        <div class="msg" id="bond-msg" role="status"></div>
+        <div class="row wrap">
+          <button type="button" class="btn" id="look">Look down this bond</button>
+          <button type="button" class="btn-ghost" id="swap" title="Look from the other end">Swap ends</button>
+          <button type="button" class="btn-ghost" id="reset-view">Reset view</button>
+        </div>
+      </div>
+
+      <div class="card locked" id="c-rotate">
+        <h2><span class="num">3</span> Rotate the back carbon</h2>
+        <div id="rot-controls">
+          <div class="dih-head"><label class="lbl" for="dihedral">Dihedral angle</label><output id="dih-val" for="dihedral">180°</output></div>
+          <input id="dihedral" type="range" min="-180" max="180" step="1" value="180" aria-valuetext="180 degrees">
+          <div class="snap-row" role="group" aria-label="Jump to an angle">
+            <button type="button" class="chip snap" data-deg="-120" aria-pressed="false">−120°</button>
+            <button type="button" class="chip snap" data-deg="-60" aria-pressed="false">−60°</button>
+            <button type="button" class="chip snap" data-deg="0" aria-pressed="false">0°</button>
+            <button type="button" class="chip snap" data-deg="60" aria-pressed="false">60°</button>
+            <button type="button" class="chip snap" data-deg="120" aria-pressed="false">120°</button>
+            <button type="button" class="chip snap" data-deg="180" aria-pressed="false">180°</button>
+          </div>
+        </div>
+        <p class="hint" id="rot-hint">Drag the slider, or drag around the Newman circle.</p>
+        <div class="row"><button type="button" class="btn" id="flip" hidden>Flip the chair</button></div>
+      </div>
+
+      <div class="card locked" id="c-energy">
+        <h2><span class="num">4</span> Torsional energy</h2>
+        <canvas id="energy-plot" role="img" aria-label="Torsional energy plot"></canvas>
+        <p class="hint" id="energy-note"></p>
+      </div>
+
+      <div class="card locked" id="c-prompts">
+        <h2><span class="num">5</span> Try it</h2>
+        <p id="prompt-q"></p>
+        <div class="row wrap">
+          <label class="sr" for="prompt-in">Your answer</label>
+          <input id="prompt-in" type="number" inputmode="decimal" step="any" hidden>
+          <button type="button" class="btn" id="prompt-check">Check</button>
+          <button type="button" class="btn-ghost" id="prompt-next">Next</button>
+        </div>
+        <div class="msg" id="prompt-msg" role="status"></div>
+      </div>
+    </section>
+
+    <section class="viewer" aria-label="3D model">
+      <div id="canvas"></div>
+      <canvas id="newman-overlay" aria-hidden="true"></canvas>
+      <div class="align-hint" id="align-hint" hidden>Newman view · circle = back carbon</div>
+      <div class="rot-strip" id="rot-strip" hidden>
+        <label for="dihedral-m">Turn</label>
+        <input id="dihedral-m" type="range" min="-180" max="180" step="1" value="180" aria-label="Dihedral angle">
+        <output id="dih-val-m" for="dihedral-m">180°</output>
+      </div>
+      <div class="result" id="result" hidden aria-live="polite">
+        <div class="axe-big" id="r-conf"></div>
+        <div class="k">Bond</div><div class="v" id="r-bond"></div>
+        <div class="k">Dihedral</div><div class="v" id="r-dih"></div>
+        <div class="k">Energy</div><div class="v" id="r-energy"></div>
+      </div>
+      <figure class="newman-card" id="newman-card" hidden>
+        <canvas id="newman2d" role="img" aria-label="Newman projection"></canvas>
+        <figcaption id="newman-cap"></figcaption>
+      </figure>
+      <div class="legend" id="legend" aria-hidden="true"></div>
+    </section>
+  </main>
+</body>
+</html>
