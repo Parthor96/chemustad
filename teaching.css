@@ -491,3 +491,10 @@ body.rickshaw {
 .nav-logo-img { display: flex; align-items: center; flex-shrink: 0; }
 .nav-logo-img img { height: 28px; width: auto; display: block; }
 @media (max-width: 640px) { .nav-logo-img img { height: 22px; } }
+
+/* Booking */
+.book-lead { font-size: 15px; color: var(--text-2); margin: 8px 0 12px; }
+.btn-book { display: inline-block; width: 100%; text-align: center; }
+.book-alt { font-size: 14px; color: var(--text-3); margin: 12px 0 0; }
+.rickshaw .book-lead { color: #d9cfbf; }
+.rickshaw .book-alt { color: #a89db3; }
