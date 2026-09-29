@@ -498,3 +498,65 @@ body.rickshaw {
 .book-alt { font-size: 14px; color: var(--text-3); margin: 12px 0 0; }
 .rickshaw .book-lead { color: #d9cfbf; }
 .rickshaw .book-alt { color: #a89db3; }
+
+/* ---------- How I teach + About me (between practice and reviews) ---------- */
+.approach, .about { scroll-margin-top: 80px; }
+.approach { padding: 8px 0 56px; }
+.approach-title, .about-title {
+    font-family: var(--display, "Shrikhand", Georgia, serif); font-weight: 400; letter-spacing: 0;
+    font-size: 36px; line-height: 1.15;
+}
+.approach-title { color: var(--r-red-deep, #b3261e); margin-bottom: 24px; }
+.approach-list {
+    list-style: none; padding: 0; margin: 0;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;
+}
+.approach-card {
+    --c: var(--mari, #ffb300);
+    position: relative; display: grid; gap: 12px; padding: 24px 22px 22px;
+    background: var(--cream-2, #f3e6cc); color: var(--ink, #1d1621);
+    border: 2px solid var(--ink, #1d1621); border-radius: 16px;
+    box-shadow: 6px 6px 0 var(--c);
+}
+.approach-mari { --c: var(--mari, #ffb300); }
+.approach-teal { --c: var(--r-teal, #14b8a6); }
+.approach-pink { --c: var(--r-pink, #ff5c93); }
+.approach-num {
+    display: inline-grid; place-items: center; width: 44px; height: 44px;
+    font-family: var(--display, "Shrikhand", Georgia, serif); font-size: 22px; line-height: 1;
+    color: var(--night, #17131d); background: var(--c);
+    border: 2px solid var(--ink, #1d1621); border-radius: 50%;
+}
+.approach-card p { font-size: 16px; line-height: 1.5; color: var(--ink, #1d1621); }
+
+.about { padding: 0 0 80px; }
+.about-card {
+    display: grid; grid-template-columns: 256px minmax(0, 1fr); gap: 36px; align-items: center;
+    padding: 36px 40px; background: var(--night, #17131d); color: var(--cream, #fbf3e2);
+    border: 2px solid var(--ink, #1d1621); border-radius: 22px;
+    box-shadow: inset 0 0 0 6px var(--night, #17131d), inset 0 0 0 8px var(--r-teal, #14b8a6), 8px 8px 0 var(--mari, #ffb300);
+}
+.about-fig { margin: 0; justify-self: center; }
+.about-photo {
+    display: block; width: 100%; max-width: 256px; height: auto; aspect-ratio: 1; object-fit: cover;
+    border-radius: 50%; border: 3px solid var(--ink, #1d1621); box-shadow: 0 0 0 4px var(--mari, #ffb300), 6px 6px 0 4px var(--r-red, #e53935);
+}
+.about-title { color: var(--mari, #ffb300); margin-bottom: 14px; }
+.about-text { font-size: 16px; line-height: 1.55; color: #e6dccb; max-width: 720px; }
+.about-cred { margin-top: 16px; font-size: 14px; font-weight: 600; color: var(--r-teal, #14b8a6); }
+
+@media (max-width: 900px) {
+    .approach-list { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+    .about-card { grid-template-columns: 200px minmax(0, 1fr); gap: 28px; padding: 30px 28px; }
+}
+@media (max-width: 640px) {
+    .approach { padding: 0 0 48px; }
+    .approach-title, .about-title { font-size: 30px; }
+    .approach-card { padding: 20px 18px 18px; box-shadow: 5px 5px 0 var(--c); }
+    .about { padding-bottom: 64px; }
+    .about-card { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 28px 22px 26px; border-radius: 18px; box-shadow: inset 0 0 0 6px var(--night, #17131d), inset 0 0 0 8px var(--r-teal, #14b8a6), 6px 6px 0 var(--mari, #ffb300); }
+    .about-fig { justify-self: start; }
+    .about-photo { max-width: 128px; box-shadow: 0 0 0 3px var(--mari, #ffb300), 4px 4px 0 3px var(--r-red, #e53935); }
+    .about-title { margin-bottom: 10px; }
+    .about-text { font-size: 15.5px; }
+}
