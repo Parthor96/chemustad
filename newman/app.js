@@ -31,6 +31,12 @@
  *    (principal axes of the heavy atoms), then tilts rings so the chair reads as a chair.
  *  - Extra UI beyond the spec: a "Swap ends" button (#swap, spec 7.3 optional) and
  *    clickable examples under the input box.
+ *  - Main chain step (CHAIN_SPEC.md 5-6): an optional card between "Choose a molecule" and
+ *    "Pick a bond". It never gates the later steps. When the student numbers an equivalent
+ *    chain from the other end, setChainOrder() stores it and relabel() redraws every place
+ *    that shows C numbers. #chain-msg sits outside #chain-work so "Show me" can report in the
+ *    done state. The 3D tag layer is positioned each frame from view.project(). The optional
+ *    teal rings on the 3D model during tracing (5.7) are not built.
  */
 (function () {
   'use strict';
@@ -518,6 +524,8 @@
       return false;
     }
     st.mol = built.mol; st.coords = built.coords; st.src = mol; st.axial = !!opts.axial;
+    // a numbering the student already chose (kept on the source mol) carries over to the rebuild
+    if (mol.chainOrder) { try { chem.setChainOrder(st.mol, mol.chainOrder); } catch (e) { console.warn(e); } }
     const n = st.coords.length;
     st.center = st.coords.reduce((s, c) => V3.add(s, V3.scale(c, 1 / n)), [0, 0, 0]);
     st.local = localPositions();
@@ -527,8 +535,10 @@
     if (view) { view.build(sceneModel()); view.fit(st.radius, st.q0); }
 
     try { st.bondInfos = geom.selectableBonds(st.mol); } catch (e) { console.warn(e); st.bondInfos = []; }
+    chainLoad(!!opts.keepChain);
     const fml = subHTML(chem.formula(st.mol));
-    if (opts.msgId !== false) sayHTML(opts.msgId || 'mol-msg', 'Built ' + (st.mol.name ? esc(st.mol.name) + ' (' + fml + ')' : fml) + '.', 'ok');
+    const shownName = st.mol.name || (st.chain && st.chain.res && st.chain.res.name) || null;
+    if (opts.msgId !== false) sayHTML(opts.msgId || 'mol-msg', 'Built ' + (shownName ? esc(shownName) + ' (' + fml + ')' : fml) + '.', 'ok');
     renderBondList();
     renderLegend();
     setCard('c-bond', true);
@@ -563,7 +573,7 @@
     return true;
   }
 
-  function setCard(id, open) { $(id).classList.toggle('locked', !open); }
+  function setCard(id, open) { const e = $(id); e.classList.toggle('locked', !open); e.inert = !open; }
 
   // Start an open-chain bond in its lowest-energy anti conformation (else the global
   // minimum), so presets never load in a strained shape.
@@ -589,6 +599,9 @@
       b.textContent = chem.bondLabel(st.mol, bi.a, bi.b);
       if (!bi.rotatable) { b.insertAdjacentHTML('afterbegin', LOCK_SVG); b.setAttribute('aria-label', b.textContent + ', locked'); }
       b.addEventListener('click', () => select(bi.bond));
+      const tmp = (on) => { if (!st.chain) return; st.chain.tempBond = on ? [bi.a, bi.b] : null; drawPad(); };
+      b.addEventListener('mouseenter', () => tmp(true)); b.addEventListener('mouseleave', () => tmp(false));
+      b.addEventListener('focus', () => tmp(true)); b.addEventListener('blur', () => tmp(false));
       box.appendChild(b);
     });
     const locked = st.bondInfos.filter((b) => !b.rotatable);
@@ -672,6 +685,7 @@
     renderPrompt();
     updateStyle();
     refresh(true);
+    if (st.chain && st.chain.phase === 'done') { renderMap(); drawPad(); }
     return true;
   }
 
@@ -958,7 +972,7 @@
     if (!st.sel || !st.src) return;
     const keep = { bond: st.sel.bond, front: st.sel.front, look: st.overlayOn };
     const mol = st.src;
-    if (!loadMol(mol, { axial: !st.axial, msgId: false, hash: false, keepBond: keep.bond })) return;
+    if (!loadMol(mol, { axial: !st.axial, msgId: false, hash: false, keepBond: keep.bond, keepChain: true })) return;
     if (st.bondInfos.some((b) => b.bond === keep.bond)) select(keep.bond, keep.front);
     if (keep.look) lookDown(true);
     const subs = ringSubs();
@@ -1249,6 +1263,508 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* main chain step (CHAIN_SPEC.md sections 5 and 6)                     */
+  /* ------------------------------------------------------------------ */
+  const SKIP_KEY = 'nn.chainSkip';
+  let skipThisLoad = false;   // used when localStorage throws
+  const P2 = () => window.NNChain2D;
+  const sameArr = (a, b) => !!a && !!b && a.length === b.length && a.every((x, k) => x === b[k]);
+  const STEREO_RE = /^(\((?:\d?[RSEZ],?)+\)-|meso-|cis-|trans-)/i;
+  function skipRemembered() {
+    try { if (window.localStorage && localStorage.getItem(SKIP_KEY) === '1') return true; } catch (e) { /* storage blocked */ }
+    return skipThisLoad;
+  }
+  function rememberSkip(on) {
+    try { if (on) localStorage.setItem(SKIP_KEY, '1'); else localStorage.removeItem(SKIP_KEY); skipThisLoad = false; }
+    catch (e) { skipThisLoad = !!on; }
+  }
+  function newChainState() {
+    return { phase: 'na', res: null, path: [], fails: 0, shorterFails: 0, ringC1: null, order: null, tags: false,
+      pad: st.chain ? st.chain.pad : null, layout: null, flash: null, numbersDim: null, highlight: [], sticky: null,
+      tempBond: null, anim: 0, showing: false };
+  }
+  st.chain = newChainState();
+  const ch = () => st.chain;
+  const pcgLabel = (res) => (res && res.pcg ? res.pcg.label : 'OH');
+
+  // Called from loadMol after st.mol is set. keep = true keeps the phase (chair flip rebuilds).
+  function chainLoad(keep) {
+    const chem = C();
+    const old = st.chain;
+    if (keep && old.res) {
+      try { old.res = chem.mainChain(st.mol); } catch (e) { console.warn(e); }
+      if (old.order) { chem.setChainOrder(st.mol, old.order); }
+      if (old.pad && old.layout) old.pad.setMol(st.mol, old.layout);
+      renderChain();
+      return;
+    }
+    const s = newChainState();
+    st.chain = s;
+    s.anim++;
+    try {
+      s.res = chem.mainChain(st.mol);
+      const k = s.res.kind;
+      if (!P2() || k === 'none' || !s.res.chain.length) s.phase = 'na';
+      else if (k === 'single') { s.phase = 'done'; s.tags = true; }
+      else if (skipRemembered()) s.phase = 'skipped';
+      else s.phase = 'intro';
+    } catch (e) {
+      console.warn('main chain step failed', e);
+      s.res = null; s.phase = 'na';
+    }
+    setCard('c-chain', true);
+    renderChain();
+  }
+  function ensurePad() {
+    const s = ch();
+    if (!P2()) return null;
+    $('chain-wrap').hidden = false;
+    if (!s.pad) {
+      s.pad = P2().attach($('chain-pad'), {
+        onTap: (i, info) => chainTap(i, info),
+        onEndTap: (i) => chainEnd(i),
+        onUndo: () => chainUndo()
+      });
+    }
+    if (!s.layout) {
+      try { s.layout = P2().layout(st.mol, { src: st.src }); } catch (e) { console.warn('chain layout failed', e); s.layout = null; return null; }
+      s.pad.setMol(st.mol, s.layout);
+    }
+    return s.pad;
+  }
+  function mainOrder() {
+    const s = ch();
+    if (!s.res) return [];
+    return (st.mol.chainOrder && st.mol.chainOrder.length) ? st.mol.chainOrder : s.res.chain;
+  }
+  function chainCandidates() {
+    const s = ch(), chem = C();
+    if (s.phase === 'trace') {
+      if (!s.path.length) {
+        // before the first tap: ring the end carbons (one carbon neighbor), where a main chain starts
+        const inRing = new Set([].concat.apply([], st.mol.rings || []));
+        return st.mol.atoms.map((a, i) => i).filter((i) => st.mol.atoms[i].el === 'C' && !inRing.has(i) &&
+          chem.neighbors(st.mol, i).filter((j) => st.mol.atoms[j].el === 'C').length <= 1);
+      }
+      const last = s.path[s.path.length - 1];
+      return chem.neighbors(st.mol, last).filter((j) => st.mol.atoms[j].el === 'C' && s.path.indexOf(j) < 0);
+    }
+    if (s.phase === 'ring' && s.ringC1 != null) {
+      const ring = s.res.chain;
+      return chem.neighbors(st.mol, s.ringC1).filter((j) => ring.indexOf(j) >= 0);
+    }
+    return [];
+  }
+  function padState() {
+    const s = ch(), chem = C(), out = { path: [], candidates: [], numbers: {}, numbersDim: {}, branchLabels: {}, ends: [], flash: s.flash, highlight: s.highlight || [], selBond: null, tracing: false };
+    if (s.phase === 'trace' || s.phase === 'ring' || s.phase === 'direction') {
+      out.path = s.phase === 'ring' ? (s.ringC1 != null ? [s.ringC1] : []) : s.path.slice();
+      out.candidates = chainCandidates();
+      out.tracing = true;
+      if (s.phase === 'direction') out.ends = [s.path[0], s.path[s.path.length - 1]];
+      if (s.numbersDim) out.numbersDim = s.numbersDim;
+      if (s.showing) { out.path = s.path.slice(); out.candidates = []; out.ends = []; out.numbers = s.showNumbers || {}; }
+    } else if (s.phase === 'done') {
+      const order = mainOrder();
+      order.forEach((a, k) => { out.numbers[a] = k + 1; });
+      st.mol.atoms.forEach((a, i) => { if (a.el === 'C' && order.indexOf(i) < 0) out.branchLabels[i] = chem.atomLabel(st.mol, i); });
+      const sb = s.tempBond || (st.sel ? [st.sel.front, st.sel.back] : null);
+      if (sb && st.mol.atoms[sb[0]].el !== 'H' && st.mol.atoms[sb[1]].el !== 'H') out.selBond = sb;
+    }
+    return out;
+  }
+  function drawPad() { const s = ch(); if (s.pad && s.layout && !$('chain-wrap').hidden) s.pad.setState(padState()); }
+  function flash(atoms, kind) { ch().flash = atoms && atoms.length ? { atoms: atoms.slice(), kind } : null; }
+  function chainSay(text, kind) { say('chain-msg', text, kind); }
+
+  function chainQuestion() {
+    const s = ch(), res = s.res;
+    if (s.phase === 'trace') {
+      let q = 'Tap the carbons of the longest chain, one after another, from one end to the other. You can also drag through them.';
+      if (res.pcg && (s.fails > 0 || /^(acid|aldehyde|nitrile|amide)$/.test(res.pcg.cls))) q += ' The main chain has to include the carbon with the ' + res.pcg.label + '.';
+      if (res.unsat.length && s.fails > 0) q += ' It also has to include both carbons of the ' + (res.unsat[0].order === 3 ? 'C≡C' : 'C=C') + '.';
+      return q;
+    }
+    if (s.phase === 'ring') return s.ringC1 == null
+      ? 'In a ring, the ring is the main chain. Tap the carbon that should be C1, then the one that should be C2.'
+      : 'Now tap the carbon next to it that should be C2.';
+    if (s.phase === 'direction') return 'Now number it. Tap the end that should be C1.';
+    return '';
+  }
+  function renderChain() {
+    const s = ch(), show = (id, on) => { $(id).hidden = !on; };
+    const ph = s.phase;
+    show('chain-intro', ph === 'intro');
+    show('chain-work', ph === 'trace' || ph === 'ring' || ph === 'direction');
+    show('chain-done', ph === 'done');
+    show('chain-skipped', ph === 'skipped');
+    show('chain-na', ph === 'na');
+    const padOn = ph === 'trace' || ph === 'ring' || ph === 'direction' || ph === 'done';
+    $('chain-wrap').hidden = !padOn;
+    if (padOn) ensurePad();
+    if (ph === 'na') $('chain-na-text').textContent = s.res && s.res.reasonText && s.res.kind === 'none' ? s.res.reasonText
+      : 'This tool numbers single chains and single carbon rings. This molecule has more than that, so I number it the simple way and skip the naming step.';
+    if (ph !== 'trace' && ph !== 'ring' && ph !== 'direction' && ph !== 'done') chainSay('');
+    $('chain-q').textContent = chainQuestion();
+    $('chain-check').hidden = ph !== 'trace';
+    $('chain-reset').hidden = ph === 'direction';
+    $('chain-undo').disabled = ph === 'trace' ? !s.path.length : ph === 'ring' ? s.ringC1 == null : false;
+    $('chain-show').disabled = !!s.showing;
+    $('chain-check').disabled = !!s.showing;
+    const n = ph === 'trace' ? s.path.length : 0;
+    $('chain-count').textContent = n ? n + (n === 1 ? ' carbon' : ' carbons') : '';
+    if (ph === 'done') renderDone();
+    $('chain-tags').setAttribute('aria-pressed', String(!!s.tags));
+    $('chain-tags2').setAttribute('aria-pressed', String(!!s.tags));
+    const nm = st.mol && s.res && s.res.name ? s.res.name : (st.mol && st.mol.name) || 'this molecule';
+    $('chain-pad').setAttribute('aria-label', 'Skeletal structure of ' + nm + (ph === 'done' ? ', main chain numbered' : '') + '. Arrow keys move between atoms, Enter picks one, Backspace undoes.');
+    drawPad();
+    buildTags();
+  }
+
+  /* ----- done state: name breakdown ----- */
+  function typedName() {
+    const m = st.src || st.mol;
+    if (!m) return null;
+    const norm = (t) => String(t || '').toLowerCase().replace(/[\s_]/g, '');
+    if (m.source === 'name' && m.input) {
+      if (m.presetId && norm(m.input).replace(/-/g, '') === norm(m.presetId).replace(/-/g, '')) return m.name ? { text: m.name, typed: false } : null;
+      return { text: m.input.trim(), typed: true };
+    }
+    return m.name ? { text: m.name, typed: false } : null;
+  }
+  function renderDone() {
+    const s = ch(), res = s.res, chem = C();
+    const box = $('chain-name'), list = $('chain-lines');
+    box.innerHTML = ''; list.innerHTML = '';
+    box.classList.toggle('unnamed', !res.supported);
+    if (!res.supported || !res.parts) {
+      box.textContent = st.mol.name || '';
+      $('chain-alt').textContent = res.reasonText || '';
+    } else {
+      res.parts.forEach((p, k) => {
+        if (p.role === 'punct' || p.line == null) {
+          const sp = document.createElement('span'); sp.className = 'part ' + p.role; sp.textContent = p.text; box.appendChild(sp); return;
+        }
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'part ' + p.role; b.textContent = p.text;
+        b.dataset.line = p.line; b.dataset.k = k;
+        b.setAttribute('aria-describedby', 'chain-line-' + p.line);
+        b.addEventListener('mouseenter', () => hiLine(p.line, false));
+        b.addEventListener('mouseleave', () => hiLine(null, false));
+        b.addEventListener('focus', () => hiLine(p.line, false));
+        b.addEventListener('blur', () => hiLine(null, false));
+        b.addEventListener('click', () => hiLine(p.line, true));
+        box.appendChild(b);
+      });
+      (res.lines || []).forEach((l, k) => {
+        const li = document.createElement('li');
+        li.id = 'chain-line-' + k; li.tabIndex = 0;
+        li.innerHTML = esc(l.text).replace(/([H)])(\d+)/g, '$1<sub>$2</sub>'); // CH3, NH2, C(CH3)3; never C2
+        li.addEventListener('mouseenter', () => hiLine(k, false));
+        li.addEventListener('mouseleave', () => hiLine(null, false));
+        li.addEventListener('focus', () => hiLine(k, false));
+        li.addEventListener('blur', () => hiLine(null, false));
+        li.addEventListener('click', () => hiLine(k, true));
+        list.appendChild(li);
+      });
+      // typed / common name, or the 2013 form
+      const stereo = res.stereo || '';
+      const tn = typedName();
+      const norm = (t) => String(t || '').toLowerCase().replace(/\s+/g, '').replace(STEREO_RE, '');
+      let alt = '';
+      if (tn && norm(tn.text) !== norm(res.name) && norm(tn.text) !== norm(res.name2013)) {
+        alt = (tn.typed ? 'You typed ' + tn.text + '. ' : 'Common name: ' + tn.text + '. ') + 'The IUPAC name is ' + stereo + res.name + '.';
+      } else if (tn && norm(tn.text) === norm(res.name2013) && res.name2013 !== res.name) {
+        alt = 'Also written: ' + stereo + res.name + '.';
+      } else if (res.name2013 && res.name2013 !== res.name) alt = 'Also written: ' + stereo + res.name2013 + '.';
+      if (res.unsat.length && res.maxLen > res.n && res.kind === 'chain') {
+        alt += (alt ? ' ' : '') + 'Some newer textbooks pick the longest chain even when it misses the C=C; this tool keeps the C=C in the chain.';
+      }
+      $('chain-alt').textContent = alt;
+    }
+    $('chain-alt').hidden = !$('chain-alt').textContent;
+    renderMap();
+  }
+  // connect the numbers to the bond list (#chain-map)
+  function renderMap() {
+    const s = ch(), chem = C();
+    if (!s.res || !st.mol) return;
+    let map = '';
+    if (st.sel) {
+      const bl = chem.bondLabel(st.mol, st.sel.front, st.sel.back), parts = bl.split('–');
+      map = bl + ' in the bond list is the bond between ' + parts[0] + ' and ' + parts[1] + '.';
+    } else map = 'The bond list uses these numbers.';
+    const order = mainOrder();
+    const branch = st.mol.atoms.map((a, i) => i).filter((i) => st.mol.atoms[i].el === 'C' && order.indexOf(i) < 0)
+      .map((i) => chem.atomLabel(st.mol, i)).sort((a, b) => parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10));
+    if (branch.length === 1) map += ' The branch carbon gets ' + branch[0] + ' after the chain.';
+    else if (branch.length > 1) map += ' The branch carbons get ' + (branch.length > 2 ? branch.slice(0, -1).join(', ') + ' and ' + branch[branch.length - 1] : branch.join(' and ')) + ' after the chain.';
+    if (s.tags) map += ' The 3D model uses the same numbers.';
+    $('chain-map').textContent = map;
+  }
+  function hiLine(k, sticky) {
+    const s = ch(), res = s.res;
+    if (sticky) s.sticky = s.sticky === k ? null : k;
+    const line = k != null ? k : s.sticky;
+    s.highlight = line != null && res && res.lines && res.lines[line] ? res.lines[line].atoms.filter((a) => st.mol.atoms[a] && st.mol.atoms[a].el !== 'H') : [];
+    document.querySelectorAll('#chain-name .part').forEach((b) => b.classList.toggle('on', line != null && b.dataset.line === String(line)));
+    document.querySelectorAll('#chain-lines li').forEach((li, j) => li.classList.toggle('on', j === line));
+    drawPad();
+  }
+
+  /* ----- actions ----- */
+  function chainStart() {
+    const s = ch();
+    if (!s.res || s.phase === 'na') return false;
+    s.anim++; s.showing = false;
+    s.path = []; s.ringC1 = null; s.flash = null; s.numbersDim = null; s.fails = 0; s.shorterFails = 0;
+    if (s.res.kind === 'single') s.phase = 'done';
+    else s.phase = s.res.kind === 'chain' ? 'trace' : 'ring';
+    chainSay('');
+    renderChain();
+    return true;
+  }
+  function chainSkip() {
+    const s = ch();
+    s.anim++; s.showing = false;
+    rememberSkip(true);
+    s.phase = 'skipped'; s.tags = false;
+    renderChain();
+  }
+  function groupText(i) {
+    const chem = C(), nb = chem.neighbors(st.mol, i).filter((j) => st.mol.atoms[j].el !== 'H');
+    try { return chem.groupLabel(st.mol, i, nb.length ? nb[0] : null); } catch (e) { return st.mol.atoms[i].el; }
+  }
+  function chainTap(i, info) {
+    const s = ch(), chem = C();
+    if (s.showing || i == null || !st.mol || !st.mol.atoms[i]) return;
+    info = info || {};
+    if (s.phase === 'trace') {
+      if (st.mol.atoms[i].el !== 'C') { chainSay('The main chain is carbons only. That ' + groupText(i) + ' is a group on the chain.', 'err'); flash([i], 'err'); renderChain(); return; }
+      const last = s.path[s.path.length - 1];
+      if (i === last) { if (!info.drag) chainUndo(); return; }
+      if (s.path.indexOf(i) >= 0) { if (!info.drag) { chainSay('Already in your chain. Use Undo to back up.', 'err'); flash([i], 'err'); renderChain(); } return; }
+      if (s.path.length && chem.bondBetween(st.mol, last, i) < 0) {
+        if (info.drag) return;
+        chainSay('Go bond by bond: tap a carbon bonded to the last one you picked.', 'err'); flash([i], 'err'); renderChain(); return;
+      }
+      s.path.push(i); s.flash = null;
+      if ($('chain-msg').classList.contains('err')) chainSay('');
+      renderChain();
+      return;
+    }
+    if (s.phase === 'ring') {
+      const res = s.res, ring = res.chain;
+      if (s.ringC1 == null) {
+        const err = ringFirstCheck(i);
+        if (err) { chainSay(err, 'err'); flash([i], 'err'); renderChain(); return; }
+        s.ringC1 = i; s.flash = null; chainSay('');
+        renderChain();
+        return;
+      }
+      if (i === s.ringC1) { s.ringC1 = null; renderChain(); return; }
+      const order = chem.ringStart(st.mol, s.ringC1, i);
+      if (!order.length || ring.indexOf(i) < 0) { chainSay('C2 has to be next to C1 in the ring.', 'err'); flash([i], 'err'); renderChain(); return; }
+      const r = chem.checkNumbering(st.mol, order);
+      if (r.ok) { acceptOrder(order, r.msg); return; }
+      s.fails++;
+      showWrongNumbers(order, [s.ringC1, i]);
+      s.ringC1 = null;
+      chainSay(r.msg, 'err');
+      renderChain();
+      return;
+    }
+    if (s.phase === 'direction') {
+      if (i === s.path[0] || i === s.path[s.path.length - 1]) chainEnd(i);
+    }
+  }
+  function ringFirstCheck(i) {
+    const s = ch(), res = s.res, ring = res.chain;
+    if (ring.indexOf(i) < 0) return 'Pick a carbon in the ring.';
+    if (res.pcg) {
+      if (res.pcg.atoms.indexOf(i) < 0) return 'C1 is the ring carbon with the ' + res.pcg.label + '.';
+      return null;
+    }
+    if (res.unsat.length) {
+      if (!res.unsat.some((u) => u.a === i || u.b === i)) return 'With a C=C in the ring, C1 and C2 are the two double-bond carbons.';
+      return null;
+    }
+    if (res.substituents.length && !res.substituents.some((x) => x.at === i)) return 'Start at a carbon that has a branch.';
+    return null;
+  }
+  function showWrongNumbers(order, atoms) {
+    const s = ch(), dim = {};
+    order.forEach((a, k) => { dim[a] = k + 1; });
+    s.numbersDim = dim;
+    flash(atoms, 'err');
+    const tok = ++s.anim;
+    setTimeout(() => { if (st.chain === s && s.anim === tok) { s.numbersDim = null; drawPad(); } }, 1500);
+  }
+  function chainCheck() {
+    const s = ch(), chem = C();
+    if (s.phase !== 'trace' || s.showing) return null;
+    const r = chem.checkChain(st.mol, s.path);
+    if (r.ok) {
+      s.phase = 'direction'; s.flash = null;
+      chainSay(r.msg, 'ok');
+      renderChain();
+      return r;
+    }
+    s.fails++;
+    let msg = r.msg;
+    if (r.code === 'shorter') {
+      s.shorterFails++;
+      if (s.shorterFails >= 2 && r.best && r.best.length) { flash([r.best[0]], 'hint'); msg += ' One end of a longer chain is marked.'; }
+      else s.flash = null;
+    } else if (r.code === 'end' || r.code === 'missing-pcg' || r.code === 'missing-unsat') flash(r.atoms, 'hint');
+    else if (r.atoms && r.atoms.length) flash(r.atoms, 'err');
+    else s.flash = null;
+    chainSay(msg, 'err');
+    renderChain();
+    return r;
+  }
+  function chainEnd(e) {
+    const s = ch(), chem = C();
+    if (s.phase !== 'direction' || s.showing) return null;
+    const p = s.path;
+    if (e !== p[0] && e !== p[p.length - 1]) return null;
+    const order = e === p[0] ? p.slice() : p.slice().reverse();
+    const r = chem.checkNumbering(st.mol, order);
+    if (r.ok) { acceptOrder(order, r.msg); return r; }
+    s.fails++;
+    showWrongNumbers(order, [e]);
+    chainSay(r.msg, 'err');
+    renderChain();
+    return r;
+  }
+  function acceptOrder(order, msg) {
+    const s = ch(), chem = C();
+    const best = s.res.chain;
+    if (sameArr(order, best)) { chem.setChainOrder(st.mol, null); if (st.src) chem.setChainOrder(st.src, null); }
+    else if (chem.setChainOrder(st.mol, order)) { if (st.src) chem.setChainOrder(st.src, order); }
+    s.order = st.mol.chainOrder ? order.slice() : null;
+    s.phase = 'done'; s.tags = true; s.flash = null; s.numbersDim = null; s.path = []; s.ringC1 = null;
+    relabel();
+    chainSay(msg, 'ok');
+    renderChain();
+  }
+  function chainUndo() {
+    const s = ch();
+    if (s.showing) return;
+    if (s.phase === 'trace') { s.path.pop(); s.flash = null; }
+    else if (s.phase === 'ring') s.ringC1 = null;
+    else if (s.phase === 'direction') { s.phase = 'trace'; s.numbersDim = null; }
+    chainSay('');
+    renderChain();
+  }
+  function chainReset() {
+    const s = ch();
+    if (s.showing) return;
+    s.path = []; s.ringC1 = null; s.flash = null; s.numbersDim = null;
+    if (s.phase === 'direction') s.phase = 'trace';
+    chainSay('');
+    renderChain();
+  }
+  function chainAgain() {
+    const s = ch(), chem = C();
+    chem.setChainOrder(st.mol, null); if (st.src) chem.setChainOrder(st.src, null);
+    s.order = null;
+    relabel();
+    chainStart();
+  }
+  function chainShowMe() {
+    const s = ch();
+    if (!s.res || s.showing) return;
+    if (s.res.kind === 'single') { chainStart(); return; }
+    if (s.phase !== 'trace' && s.phase !== 'ring' && s.phase !== 'direction') { s.phase = s.res.kind === 'chain' ? 'trace' : 'ring'; }
+    const best = s.res.chain.slice(), tok = ++s.anim;
+    s.showing = true; s.path = []; s.ringC1 = null; s.flash = null; s.numbersDim = null; s.showNumbers = {};
+    chainSay('');
+    const finish = () => {
+      if (st.chain !== s || s.anim !== tok) return;
+      s.showing = false; s.showNumbers = null;
+      s.order = st.mol.chainOrder ? st.mol.chainOrder.slice() : null;
+      s.phase = 'done'; s.tags = true; s.path = [];
+      chainSay('Here\'s the main chain and the numbering.', 'ok');
+      renderChain();
+    };
+    if (reduced()) { s.path = best.slice(); finish(); return; }
+    let k = 0;
+    const stepTrace = () => {
+      if (st.chain !== s || s.anim !== tok) return;
+      if (k < best.length) { s.path.push(best[k++]); renderChain(); setTimeout(stepTrace, 90); return; }
+      k = 0; stepNum();
+    };
+    const stepNum = () => {
+      if (st.chain !== s || s.anim !== tok) return;
+      if (k < best.length) { s.showNumbers[best[k]] = k + 1; k++; drawPad(); setTimeout(stepNum, 60); return; }
+      setTimeout(finish, 250);
+    };
+    renderChain();
+    stepTrace();
+  }
+  function setTags(on) {
+    ch().tags = !!on;
+    renderChain();
+  }
+
+  // After the student's own (equivalent) numbering is accepted: everything that shows C numbers
+  function relabel() {
+    if (!st.mol) return;
+    renderBondList();
+    if (st.sel) {
+      const chem = C();
+      document.querySelectorAll('#bond-list .chip').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.bond === st.sel.bond)));
+      if (st.sel.info.rotatable) say('bond-msg', chem.bondLabel(st.mol, st.sel.front, st.sel.back) + ' selected. Look down it, then turn the back carbon.', 'ok');
+      const keepMsg = $('prompt-msg').textContent;
+      renderPrompt();
+      if (keepMsg) say('prompt-msg', '');
+      refresh(true);
+    }
+    buildTags();
+  }
+
+  /* ----- numbers on the 3D model ----- */
+  let tagEls = [];
+  function buildTags() {
+    const layer = $('atom-tags');
+    if (!layer) return;
+    const s = ch(), chem = C();
+    layer.innerHTML = ''; tagEls = [];
+    const on = !!(s.tags && st.mol && s.res && (s.phase === 'done' || s.phase === 'skipped' || s.phase === 'intro'));
+    layer.hidden = !on;
+    if (!on) return;
+    const order = mainOrder();
+    st.mol.atoms.forEach((a, i) => {
+      if (a.el !== 'C') return;
+      const el = document.createElement('span');
+      el.className = 'atom-tag' + (order.indexOf(i) < 0 ? ' branch' : '');
+      el.textContent = chem.atomLabel(st.mol, i);
+      layer.appendChild(el);
+      tagEls.push({ i, el, r: (chem.EL.C.r) });
+    });
+  }
+  function placeTags() {
+    const layer = $('atom-tags');
+    if (!layer || layer.hidden || !tagEls.length || !view || !st.local.length) return;
+    const hide = st.overlayOn;
+    let bs = null;
+    try { bs = view.basis(); } catch (e) { bs = null; }
+    tagEls.forEach((t) => {
+      const p0 = st.local[t.i];
+      if (!p0 || hide) { t.el.hidden = true; return; }
+      const p = view.project(p0);
+      let rad = 10;
+      if (bs) { const q = view.project(V3.add(p0, V3.scale(bs.right, t.r))); rad = Math.hypot(q.x - p.x, q.y - p.y); }
+      const behind = view.kind === 'gl' ? (p.z > 1 || p.z < -1) : false;
+      if (behind || !isFinite(p.x) || !isFinite(p.y)) { t.el.hidden = true; return; }
+      t.el.hidden = false;
+      t.el.style.transform = 'translate(' + Math.round(p.x) + 'px,' + Math.round(p.y - rad - 10) + 'px) translate(-50%,-100%)';
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
   /* panel wiring                                                         */
   /* ------------------------------------------------------------------ */
   let sliderActive = false, lastHash = null;
@@ -1358,6 +1874,18 @@
     $('prompt-in').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); checkPrompt(); } });
     $('prompt-next').addEventListener('click', () => { st.promptIdx++; renderPrompt(); });
 
+    // main chain step
+    $('chain-start').addEventListener('click', chainStart);
+    $('chain-skip').addEventListener('click', chainSkip);
+    $('chain-check').addEventListener('click', chainCheck);
+    $('chain-undo').addEventListener('click', chainUndo);
+    $('chain-reset').addEventListener('click', chainReset);
+    $('chain-show').addEventListener('click', chainShowMe);
+    $('chain-again').addEventListener('click', chainAgain);
+    $('chain-open').addEventListener('click', () => { rememberSkip(false); chainStart(); });
+    $('chain-tags').addEventListener('click', () => setTags(!ch().tags));
+    $('chain-tags2').addEventListener('click', () => setTags(!ch().tags));
+
     // drag around the side-panel Newman circle
     if (N2()) {
       N2().attachDrag($('newman2d'), {
@@ -1381,6 +1909,7 @@
     if (view) {
       checkOverlay();
       view.frame();
+      placeTags();
     }
     if (st.dirty) refresh(false);
   }
@@ -1414,7 +1943,20 @@
     select: (bondIdx) => select(bondIdx),
     setDihedral: (deg) => { const ok = setDihedral(deg); refresh(true); return ok; },
     lookDown: (instant) => lookDown(instant),
-    get state() { return st; }
+    get state() { return st; },
+    // main chain step (CHAIN_SPEC.md 6), for tests
+    chain: {
+      start: () => chainStart(),
+      skip: () => chainSkip(),
+      tap: (i) => chainTap(i, {}),
+      check: () => chainCheck(),
+      end: (i) => chainEnd(i),
+      showMe: () => chainShowMe(),
+      undo: () => chainUndo(),
+      again: () => chainAgain(),
+      state: () => st.chain,
+      screenPos: (i) => (st.chain && st.chain.pad ? st.chain.pad.screenPos(i) : null)
+    }
   };
   window.addEventListener('load', start);
 })();

@@ -90,7 +90,49 @@ input[type=range][disabled] { opacity: .4; cursor: not-allowed; }
 .rot-strip { display: none; }
 .viewer.fading #canvas canvas { cursor: grab; }
 
+/* main chain step (CHAIN_SPEC.md 7) */
+.card h2 .opt { margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--dim); border: 1.5px solid var(--line); border-radius: 999px; padding: 2px 8px; }
+#c-chain [hidden] { display: none; }
+#c-chain p { margin-bottom: 8px; }
+.chain-wrap { position: relative; margin: 8px 0 4px; }
+#chain-pad { display: block; width: 100%; max-width: 100%; height: 240px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--night); touch-action: pan-y; cursor: pointer; }
+#chain-pad.tracing { touch-action: none; }
+#chain-pad:focus-visible { outline: 2px solid var(--mari); outline-offset: 2px; }
+.chain-count { position: absolute; top: 8px; left: 8px; background: var(--teal); color: var(--night); font-weight: 700;
+  font-size: 12px; padding: 2px 10px; border-radius: 999px; border: 2px solid var(--ink); pointer-events: none; }
+.chain-count:empty { display: none; }
+#chain-msg:empty { display: none; }
+#chain-work .row, #chain-done .row, #chain-intro .row, #chain-skipped .row { margin-top: 8px; }
+.name-big { font-family: var(--display); font-size: 26px; line-height: 1.25; overflow-wrap: anywhere; margin: 6px 0 4px; color: var(--cream); }
+.name-big .part { font: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; color: inherit; border-radius: 4px; }
+.name-big .locant, .name-big .punct { font-family: var(--font); font-weight: 700; font-size: .8em; }
+.name-big .sub { color: var(--pink); } .name-big .parent { color: var(--mari); } .name-big .suffix, .name-big .unsat { color: var(--teal); }
+.name-big .mult, .name-big .punct { color: var(--muted); } .name-big .stereo { color: var(--dim); }
+.name-big .part.on { text-decoration: underline 3px; text-underline-offset: 4px; }
+.name-big .part:focus-visible { outline-offset: 1px; }
+.name-big.unnamed { font-family: var(--font); font-size: 15px; font-weight: 700; }
+.name-lines { list-style: none; margin: 6px 0 8px; font-size: 13.5px; color: var(--muted); }
+.name-lines li { padding: 4px 0 4px 10px; border-left: 3px solid var(--line); margin-bottom: 4px; cursor: default; }
+.name-lines li.on { border-left-color: var(--pink); color: var(--cream); }
+.name-lines sub { font-size: .75em; line-height: 0; }
+.name-lines li:focus-visible { outline-offset: 1px; }
+.atom-tags { position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none; overflow: hidden; }
+.atom-tags[hidden] { display: none; }
+.atom-tag { position: absolute; left: 0; top: 0; font: 700 11px var(--font); padding: 1px 6px; border-radius: 999px;
+  background: var(--mari); color: var(--ink); border: 1.5px solid var(--ink); white-space: nowrap; will-change: transform; }
+.atom-tag.branch { background: var(--night-3); color: var(--muted); border-color: var(--line); }
+.atom-tag[hidden] { display: none; }
+.credit { font-size: 12px; color: var(--dim); margin-top: 18px; text-align: center; }
+.credit a { color: var(--dim); text-decoration: none; }
+.credit a:hover { color: var(--mari); text-decoration: underline; }
+
 @media (max-width: 860px) {
+  #chain-pad { height: 220px; }
+  .credit a { display: inline-block; padding: 12px 0; }
+  .name-big { line-height: 44px; }
+  .name-big .part { display: inline-block; min-height: 44px; vertical-align: top; }
+  .atom-tags { bottom: auto; height: max(42vh, 300px); }
   #canvas { height: 42vh; min-height: 300px; }
   #newman-overlay { height: max(42vh, 300px); }
   #canvas { order: 0; } .rot-strip { order: 1; } .legend { order: 2; } .result { order: 3; } .newman-card { order: 4; }
@@ -110,10 +152,13 @@ input[type=range][disabled] { opacity: .4; cursor: not-allowed; }
   input[type=range] { height: 44px; }
 }
 @media (pointer: coarse) {
+  .name-big { line-height: 44px; }
+  .name-big .part { display: inline-block; min-height: 44px; vertical-align: top; }
   .btn, .btn-ghost, .chip, .mode button, select, input[type=text], input[type=number] { min-height: 44px; }
   .hint .ex { padding: 6px 0; }
 }
 @media (max-width: 400px) {
+  .name-big { font-size: 22px; }
   .panel { padding-left: 16px; padding-right: 16px; }
   .card { padding: 14px 12px; }
 }
