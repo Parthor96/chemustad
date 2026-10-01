@@ -31,7 +31,7 @@
     .topbar .logo img { height: 28px; width: auto; display: block; }
     @media (max-width: 640px) { .topbar .logo img { height: 22px; } }
     .topbar nav { display: flex; gap: 18px; font-size: 14px; }
-    .topbar nav a { color: var(--cream); text-decoration: none; opacity: .85; }
+    .topbar nav a { color: var(--cream); text-decoration: none; opacity: .85; padding: 12px 0; margin: -12px 0; }
     .topbar nav a:hover { opacity: 1; text-decoration: underline; }
     .strip { height: 22px; background: url(border.svg) repeat-x center / auto 22px; }
 
@@ -168,6 +168,10 @@
     .hintbox[hidden] { display: none; }
     .card.done h2 .num { background: var(--green); }
     .link-btn { font: inherit; font-size: 13px; font-weight: 600; background: none; border: 0; color: var(--teal); cursor: pointer; padding: 0; text-decoration: underline; }
+    .credit { margin-top: 18px; font-size: 12px; color: var(--dim); text-align: center; }
+    .credit a { color: var(--dim); text-decoration: none; }
+    .credit a:hover { color: var(--mari); text-decoration: underline; }
+    @media (max-width: 900px) { .credit a { display: inline-block; padding: 12px 0; } }
   </style>
 </head>
 <body>
@@ -306,6 +310,7 @@
         <div class="msg" id="d-msg" role="status"></div>
       </div>
       </div>
+      <footer class="credit"><a href="./">Built by Partho K. Paul, Ph.D. · © 2026 Chemustad</a></footer>
     </section>
 
     <section class="view" aria-label="Results" id="view">

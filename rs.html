@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Newman Navigator · Newman Projections &amp; Conformations in 3D | Partho K. Paul</title>
-  <meta name="description" content="Type, pick, or draw a molecule, pick a bond, and sight down it. Rotate the back carbon and watch the Newman projection, dihedral angle, and torsional energy change.">
-  <link rel="canonical" href="https://chemustad.org/newman.html">
+  <title>R/S Assigner · Assign R and S Step by Step in 3D | Partho K. Paul</title>
+  <meta name="description" content="Pick a molecule, find its stereocenters, rank the groups by CIP rules, point the lowest one away, and trace 1 → 2 → 3 to get R or S.">
+  <link rel="canonical" href="https://chemustad.org/rs.html">
   <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -94,51 +94,53 @@
     }
     @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
   </style>
-  <link rel="stylesheet" href="newman/newman.css?v=4">
+  <link rel="stylesheet" href="rs/rs.css?v=2">
   <script src="vendor/three.min.js" defer></script>
   <script src="vendor/OrbitControls.js" defer></script>
   <script src="newman/chem.js?v=4" defer></script>
-  <script src="newman/geom.js?v=3" defer></script>
-  <script src="newman/sketch.js?v=3" defer></script>
-  <script src="newman/newman2d.js?v=3" defer></script>
-  <script src="newman/chain2d.js?v=4" defer></script>
-  <script src="newman/app.js?v=4" defer></script>
+  <script src="newman/geom.js?v=2" defer></script>
+  <script src="newman/sketch.js?v=2" defer></script>
+  <script src="newman/newman2d.js?v=2" defer></script>
+  <script src="rs/cip.js?v=2" defer></script>
+  <script src="rs/presets.js?v=2" defer></script>
+  <script src="rs/paper.js?v=2" defer></script>
+  <script src="rs/view3d.js?v=1" defer></script>
+  <script src="rs/app.js?v=2" defer></script>
 </head>
 <body>
   <header class="topbar">
     <a class="logo" href="./"><img src="chemustad-logo.svg" alt="Chemustad" width="223" height="28"></a>
     <nav aria-label="Main">
       <a href="./">Tutoring &amp; practice</a>
-      <a class="hide-sm" href="rs.html">R/S</a>
+      <a class="hide-sm" href="newman.html">Newman</a>
       <a class="hide-sm" href="vsepr.html">VSEPR</a>
-      <a class="hide-sm" href="equilibrium.html">Equilibrium</a>
       <a class="hide-sm" href="research/">Research</a>
     </nav>
   </header>
   <div class="strip" aria-hidden="true"></div>
 
   <main class="app">
-    <section class="panel" aria-label="Newman steps">
-      <h1>Newman Navigator</h1>
-      <p class="lead">Pick a molecule, choose a bond, and look straight down it. The circle is the back carbon; lines to the centre belong to the front carbon.</p>
+    <section class="panel" aria-label="R/S steps">
+      <h1>R/S Assigner</h1>
+      <p class="lead">Find the stereocenter, rank its four groups, point the lowest one away from you, and trace 1 → 2 → 3. Clockwise is R, counterclockwise is S.</p>
 
       <div class="mode mode-3" role="group" aria-label="Input">
-        <button type="button" id="mode-type" aria-pressed="true">Type</button>
+        <button type="button" id="mode-type" aria-pressed="false">Type</button>
         <button type="button" id="mode-draw" aria-pressed="false">Draw</button>
-        <button type="button" id="mode-presets" aria-pressed="false">Presets</button>
+        <button type="button" id="mode-presets" aria-pressed="true">Presets</button>
       </div>
 
       <div class="card" id="c-input">
         <h2><span class="num">1</span> Choose a molecule</h2>
-        <div id="in-type">
+        <div id="in-type" hidden>
           <label class="lbl" for="mol-input">Name, condensed formula, or SMILES</label>
           <div class="row">
-            <input id="mol-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="butane, CH3CH2OH, CC(C)CC">
+            <input id="mol-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="(R)-2-butanol, CH3CHBrCH2CH3, C[C@@H](O)CC">
             <button type="button" class="btn" id="mol-go">Build</button>
           </div>
           <div class="msg" id="mol-msg" role="status"></div>
           <div class="choices" id="mol-choices" role="group" aria-label="Which molecule" hidden></div>
-          <p class="hint">Examples: <button type="button" class="ex">2-methylbutane</button> · <button type="button" class="ex">ClCH2CH2Cl</button> · <button type="button" class="ex">HOCH2CH2OH</button> · <button type="button" class="ex">C1CCCCC1</button> · <button type="button" class="ex">C4H10</button>. On iPad you can write in this box with Apple Pencil.</p>
+          <p class="hint">Examples: <button type="button" class="ex">(S)-2-bromobutane</button> · <button type="button" class="ex">alanine</button> · <button type="button" class="ex">CH3CH(OH)CH2CH3</button> · <button type="button" class="ex">meso-2,3-dibromobutane</button> · <button type="button" class="ex">C[C@H](Cl)CC</button></p>
         </div>
 
         <div id="in-draw" hidden>
@@ -155,129 +157,120 @@
           </div>
           <div class="msg" id="sk-msg" role="status"></div>
           <div class="row"><button type="button" class="btn" id="sk-build" disabled>Build 3D</button></div>
-          <p class="hint">Draw zigzag lines; every corner and end is a carbon. Tap a corner to change the atom, tap a bond to make it double or triple.</p>
+          <p class="hint">Every corner and end is a carbon. Tap a corner to change the atom. Drawings don't have wedges yet, so I build one mirror image; use Mirror image to see the other.</p>
         </div>
 
-        <div id="in-presets" hidden>
+        <div id="in-presets">
           <label class="lbl" for="preset">Preset</label>
           <select id="preset"></select>
+          <div class="msg" id="preset-msg" role="status"></div>
         </div>
+        <p class="hint" id="stereo-note" hidden>Your input doesn't say which mirror image, so I built one of them. Everything below is about the model on screen. Mirror image shows the other one.</p>
+        <div class="row"><button type="button" class="btn-ghost" id="mirror" disabled>Mirror image</button></div>
       </div>
 
-      <div class="card locked" id="c-chain" inert aria-labelledby="chain-h">
-        <h2 id="chain-h"><span class="num">2</span> Find the main chain <span class="opt">Optional</span></h2>
-        <div id="chain-intro">
-          <p>The numbers in bond names like C2–C3 come from the main chain. Find it and number it once, and the name makes sense too.</p>
-          <div class="row wrap">
-            <button type="button" class="btn" id="chain-start">Find the main chain</button>
-            <button type="button" class="btn-ghost" id="chain-skip">Skip, I know this</button>
-          </div>
-        </div>
-        <div class="chain-wrap" id="chain-wrap" hidden>
-          <canvas id="chain-pad" role="img" tabindex="0" aria-describedby="chain-q" aria-label="Skeletal structure for tracing the main chain"></canvas>
-          <div class="chain-count" id="chain-count" aria-hidden="true"></div>
-        </div>
-        <div id="chain-work" hidden>
-          <p id="chain-q"></p>
-          <div class="row wrap">
-            <button type="button" class="btn" id="chain-check">Check chain</button>
-            <button type="button" class="btn-ghost" id="chain-undo">Undo</button>
-            <button type="button" class="btn-ghost" id="chain-reset">Start over</button>
-            <button type="button" class="btn-ghost" id="chain-show">Show me</button>
-          </div>
-        </div>
-        <div class="msg" id="chain-msg" role="status"></div>
-        <div id="chain-done" hidden>
-          <div class="name-big" id="chain-name"></div>
-          <p class="hint" id="chain-alt"></p>
-          <ul class="name-lines" id="chain-lines"></ul>
-          <p class="hint" id="chain-map"></p>
-          <div class="row wrap">
-            <button type="button" class="chip" id="chain-tags" aria-pressed="true">Numbers on 3D</button>
-            <button type="button" class="btn-ghost" id="chain-again">Try again</button>
-          </div>
-        </div>
-        <div id="chain-skipped" hidden>
-          <p class="hint">Skipped. The C numbers in the bond list follow the main chain.</p>
-          <div class="row wrap">
-            <button type="button" class="btn-ghost" id="chain-open">Find the main chain</button>
-            <button type="button" class="chip" id="chain-tags2" aria-pressed="false">Numbers on 3D</button>
-          </div>
-        </div>
-        <div id="chain-na" hidden><p class="hint" id="chain-na-text"></p></div>
-      </div>
-
-      <div class="card locked" id="c-bond" inert>
-        <h2><span class="num">3</span> Pick a bond</h2>
-        <p>Tap a bond in the 3D model, or pick one here.</p>
-        <p class="hint lock-note" id="bond-lock-note" hidden></p>
-        <div class="bond-list" id="bond-list" role="group" aria-label="Bonds"></div>
-        <div class="msg" id="bond-msg" role="status"></div>
+      <div class="card locked" id="c-find" inert>
+        <h2><span class="num">2</span> Find the stereocenters</h2>
+        <p>Tap each carbon that has four different groups, in the model or here.</p>
+        <div class="atom-list" id="atom-list" role="group" aria-label="Carbons"></div>
         <div class="row wrap">
-          <button type="button" class="btn" id="look">Look down this bond</button>
-          <button type="button" class="btn-ghost" id="swap" title="Look from the other end">Swap ends</button>
-          <button type="button" class="btn-ghost" id="reset-view">Reset view</button>
+          <button type="button" class="btn" id="find-done">That's all of them</button>
+          <button type="button" class="btn-ghost" id="find-none">There are none</button>
+          <button type="button" class="btn-ghost" id="find-show">Show me</button>
+        </div>
+        <div class="msg" id="find-msg" role="status"></div>
+      </div>
+
+      <div class="card locked" id="c-rank" inert>
+        <h2><span class="num">3</span> Rank the four groups</h2>
+        <p id="rank-q">Tap the groups from highest priority (1) to lowest (4).</p>
+        <div class="group-list" id="group-list" role="group" aria-label="Groups on the stereocenter"></div>
+        <div class="msg" id="rank-msg" role="status"></div>
+        <details id="tiebreak" hidden>
+          <summary>How the tie was broken</summary>
+          <div id="tb-table"></div>
+        </details>
+        <div class="row wrap">
+          <button type="button" class="btn-ghost" id="rank-undo">Undo</button>
+          <button type="button" class="btn-ghost" id="rank-show">Show me</button>
         </div>
       </div>
 
-      <div class="card locked" id="c-rotate" inert>
-        <h2><span class="num">4</span> Rotate the back carbon</h2>
-        <div id="rot-controls">
-          <div class="dih-head"><label class="lbl" for="dihedral">Dihedral angle</label><output id="dih-val" for="dihedral">180°</output></div>
-          <input id="dihedral" type="range" min="-180" max="180" step="1" value="180" aria-valuetext="180 degrees">
-          <div class="snap-row" role="group" aria-label="Jump to an angle">
-            <button type="button" class="chip snap" data-deg="-120" aria-pressed="false">−120°</button>
-            <button type="button" class="chip snap" data-deg="-60" aria-pressed="false">−60°</button>
-            <button type="button" class="chip snap" data-deg="0" aria-pressed="false">0°</button>
-            <button type="button" class="chip snap" data-deg="60" aria-pressed="false">60°</button>
-            <button type="button" class="chip snap" data-deg="120" aria-pressed="false">120°</button>
-            <button type="button" class="chip snap" data-deg="180" aria-pressed="false">180°</button>
+      <div class="card locked" id="c-orient" inert>
+        <h2><span class="num">4</span> Point group 4 away from you</h2>
+        <p id="orient-state" aria-live="polite">Rank the groups first.</p>
+        <div class="row wrap" id="orient-3d">
+          <button type="button" class="btn" id="put-back">Put 4 in back</button>
+          <button type="button" class="btn-ghost" id="put-front">Put 4 toward me</button>
+        </div>
+        <div class="row wrap" id="orient-paper" hidden>
+          <button type="button" class="chip" id="pose-dash" aria-pressed="true">4 on dash</button>
+          <button type="button" class="chip" id="pose-wedge" aria-pressed="false">4 on wedge</button>
+          <button type="button" class="chip" id="pose-plane" aria-pressed="false">4 in plane</button>
+          <button type="button" class="btn-ghost" id="paper-new">New drawing</button>
+          <button type="button" class="btn" id="swap" hidden>Swap 4 with the dash group</button>
+        </div>
+        <p class="hint">Shortcut: if 4 points toward you, trace anyway and flip your answer.</p>
+      </div>
+
+      <div class="card locked" id="c-trace" inert>
+        <h2><span class="num">5</span> Trace 1 → 2 → 3</h2>
+        <div id="trace-home">
+          <div id="trace-body">
+            <p id="trace-q">Tap group 1, then 2, then 3.</p>
+            <div class="row wrap trace-chips" id="trace-chips" role="group" aria-label="Groups to trace"></div>
+            <div class="row wrap" id="turn-row" hidden>
+              <span class="so">Which way does it turn?</span>
+              <button type="button" class="chip ans-dir" id="turn-cw">Clockwise</button>
+              <button type="button" class="chip ans-dir" id="turn-ccw">Counterclockwise</button>
+              <button type="button" class="btn-ghost" id="turn-show">Show me</button>
+            </div>
+            <div class="turn" id="turn" hidden></div>
+            <div class="row wrap" id="answer-row" hidden>
+              <span class="so">So it is</span>
+              <button type="button" class="chip ans" id="ans-R">R</button>
+              <button type="button" class="chip ans" id="ans-S">S</button>
+              <button type="button" class="btn-ghost" id="ans-show">Show me</button>
+            </div>
+            <div class="row wrap" id="trace-tools">
+              <button type="button" class="btn-ghost" id="trace-show">Show me</button>
+            </div>
+            <div class="msg" id="trace-msg" role="status"></div>
+            <div class="row"><button type="button" class="btn" id="next-center" hidden>Next stereocenter</button></div>
           </div>
         </div>
-        <p class="hint" id="rot-hint">Drag the slider, or drag around the Newman circle.</p>
-        <div class="row"><button type="button" class="btn" id="flip" hidden>Flip the chair</button></div>
+        <p class="hint" id="trace-moved" hidden>The trace controls are under the model. <button type="button" class="btn-ghost" id="trace-go">Go to the model</button></p>
       </div>
 
-      <div class="card locked" id="c-energy" inert>
-        <h2><span class="num">5</span> Torsional energy</h2>
-        <canvas id="energy-plot" role="img" aria-label="Torsional energy plot"></canvas>
-        <p class="hint" id="energy-note"></p>
+      <div class="card locked" id="c-name" inert>
+        <h2><span class="num">6</span> Name it</h2>
+        <p class="big wait" id="summary-text">Finish each stereocenter first.</p>
+        <p id="summary-note"></p>
+        <div class="row"><button type="button" class="btn-ghost" id="restart">Start over</button></div>
       </div>
 
-      <div class="card locked" id="c-prompts" inert>
-        <h2><span class="num">6</span> Try it</h2>
-        <p id="prompt-q"></p>
-        <div class="row wrap">
-          <label class="sr" for="prompt-in">Your answer</label>
-          <input id="prompt-in" type="number" inputmode="decimal" step="any" hidden>
-          <button type="button" class="btn" id="prompt-check">Check</button>
-          <button type="button" class="btn-ghost" id="prompt-next">Next</button>
-        </div>
-        <div class="msg" id="prompt-msg" role="status"></div>
-      </div>
+      <p class="hint footnote">This tool uses the atomic-number rules taught in Organic I. A few rare cases need extra rules it doesn't cover.</p>
       <footer class="credit"><a href="./">Built by Partho K. Paul, Ph.D. · © 2026 Chemustad</a></footer>
     </section>
 
-    <section class="viewer" aria-label="3D model">
-      <div id="canvas"></div>
-      <div id="atom-tags" class="atom-tags" aria-hidden="true" hidden></div>
-      <canvas id="newman-overlay" aria-hidden="true"></canvas>
-      <div class="align-hint" id="align-hint" hidden>Newman view · circle = back carbon</div>
-      <div class="rot-strip" id="rot-strip" hidden>
-        <label for="dihedral-m">Turn</label>
-        <input id="dihedral-m" type="range" min="-180" max="180" step="1" value="180" aria-label="Dihedral angle">
-        <output id="dih-val-m" for="dihedral-m">180°</output>
+    <section class="viewer" aria-label="Molecule view">
+      <div class="mode view-toggle" role="group" aria-label="View">
+        <button type="button" id="view-3d" aria-pressed="true">3D</button>
+        <button type="button" id="view-paper" aria-pressed="false" disabled>Paper</button>
       </div>
+      <div class="stage">
+        <div id="canvas"></div>
+        <canvas id="overlay" aria-hidden="true"></canvas>
+        <canvas id="paper" hidden role="img" aria-label="Paper drawing of the stereocenter"></canvas>
+      </div>
+      <div class="dock" id="dock" hidden></div>
       <div class="result" id="result" hidden aria-live="polite">
-        <div class="axe-big" id="r-conf"></div>
-        <div class="k">Bond</div><div class="v" id="r-bond"></div>
-        <div class="k">Dihedral</div><div class="v" id="r-dih"></div>
-        <div class="k">Energy</div><div class="v" id="r-energy"></div>
+        <div class="axe-big" id="r-label">?</div>
+        <div class="k">Stereocenter</div><div class="v" id="r-center"></div>
+        <div class="k">Priorities</div><div class="v" id="r-prio"></div>
+        <div class="k">Group 4</div><div class="v" id="r-four"></div>
+        <div class="k">Name</div><div class="v" id="r-summary"></div>
       </div>
-      <figure class="newman-card" id="newman-card" hidden>
-        <canvas id="newman2d" role="img" aria-label="Newman projection"></canvas>
-        <figcaption id="newman-cap"></figcaption>
-      </figure>
       <div class="legend" id="legend" aria-hidden="true"></div>
     </section>
   </main>
