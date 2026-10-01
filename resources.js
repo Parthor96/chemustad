@@ -3,7 +3,7 @@
 // Videos use the same structure, with YouTube URLs. A topic with no links shows a Text (phone) or Email (desktop) link instead.
 window.TEACHING_RESOURCES = [
   { topic: 'Structure & bonding', course: 'I', problems: [], solutions: [], videos: [] },
-  { topic: 'Acids, bases & resonance', course: 'I', problems: [{ label: 'Resonance tutorial, West Virginia University (PDF)', url: 'https://community.wvu.edu/~josbour1/pages/233_Materials/handouts/Resonance%20Tutorial.pdf' }], solutions: [], videos: [] },
+  { topic: 'Acids, bases & resonance', course: 'I', problems: [{ label: 'Resonance tutorial, West Virginia University (PDF)', url: 'https://community.wvu.edu/~josbour1/pages/233_Materials/handouts/Resonance%20Tutorial.pdf' }], solutions: [{ label: 'Resonance tutorial solutions, West Virginia University (PDF)', url: 'https://community.wvu.edu/~josbour1/pages/233_Materials/handouts/Resonance%20Tutorial%20-%20Solutions.pdf' }], videos: [] },
   { topic: 'Alkanes & conformations', course: 'I', problems: [], solutions: [], videos: [] },
   { topic: 'Stereochemistry', course: 'I', problems: [], solutions: [], videos: [] },
   { topic: 'Substitution & elimination', course: 'I', problems: [], solutions: [], videos: [] },
