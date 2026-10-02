@@ -94,15 +94,15 @@
     }
     @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
   </style>
-  <link rel="stylesheet" href="newman/newman.css?v=4">
+  <link rel="stylesheet" href="newman/newman.css?v=5">
   <script src="vendor/three.min.js" defer></script>
   <script src="vendor/OrbitControls.js" defer></script>
   <script src="newman/chem.js?v=4" defer></script>
   <script src="newman/geom.js?v=3" defer></script>
-  <script src="newman/sketch.js?v=3" defer></script>
+  <script src="newman/sketch.js?v=4" defer></script>
   <script src="newman/newman2d.js?v=3" defer></script>
   <script src="newman/chain2d.js?v=4" defer></script>
-  <script src="newman/app.js?v=4" defer></script>
+  <script src="newman/app.js?v=5" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -149,13 +149,19 @@
             <button type="button" class="chip" id="sk-undo" disabled>Undo</button>
             <button type="button" class="chip" id="sk-clear" disabled>Clear</button>
           </div>
+          <div class="sk-tools sk-bonds" role="group" aria-label="Bond type">
+            <span class="sk-label">Bond:</span>
+            <button type="button" class="chip" data-bond="plain" aria-pressed="true"><svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="2" y1="5" x2="20" y2="5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg> Line</button>
+            <button type="button" class="chip" data-bond="wedge" aria-pressed="false"><svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><polygon points="2,5 20,1 20,9" fill="currentColor"/></svg> Wedge</button>
+            <button type="button" class="chip" data-bond="dash" aria-pressed="false"><svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><g stroke="currentColor" stroke-width="1.8"><line x1="5" y1="4" x2="5" y2="6"/><line x1="9" y1="3.2" x2="9" y2="6.8"/><line x1="13" y1="2.4" x2="13" y2="7.6"/><line x1="17" y1="1.5" x2="17" y2="8.5"/></g></svg> Dash</button>
+          </div>
           <div class="sk-wrap">
             <canvas id="sketch" tabindex="0" aria-label="Drawing area for a skeletal structure. Use the Type tab for a keyboard alternative."></canvas>
             <div id="sk-picker" class="sk-picker" hidden></div>
           </div>
           <div class="msg" id="sk-msg" role="status"></div>
           <div class="row"><button type="button" class="btn" id="sk-build" disabled>Build 3D</button></div>
-          <p class="hint">Draw zigzag lines; every corner and end is a carbon. Tap a corner to change the atom, tap a bond to make it double or triple.</p>
+          <p class="hint">Draw zigzag lines; every corner and end is a carbon. Tap a corner to change the atom, tap a bond to make it double or triple. For wedges and dashes, pick Wedge or Dash and tap a bond (tap again to flip it, once more for a plain line), or draw the bond out from the stereocenter. The narrow end sits on the stereocenter.</p>
         </div>
 
         <div id="in-presets" hidden>
@@ -215,6 +221,7 @@
         <div class="msg" id="bond-msg" role="status"></div>
         <div class="row wrap">
           <button type="button" class="btn" id="look">Look down this bond</button>
+          <button type="button" class="btn-ghost" id="side" title="Turn the molecule so this bond lies flat across the screen">Side view</button>
           <button type="button" class="btn-ghost" id="swap" title="Look from the other end">Swap ends</button>
           <button type="button" class="btn-ghost" id="reset-view">Reset view</button>
         </div>
