@@ -586,3 +586,39 @@ body.rickshaw {
 @media (max-width: 359px) {
     .nav-links li:first-of-type + li { display: none; } /* drop "Practice" on the smallest phones */
 }
+
+/* ---------- Site split (home = teaching, tutoring.html, resources.html) ---------- */
+.nav-link[aria-current="page"] { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; }
+.home-tools { padding: 72px 0 72px; scroll-margin-top: 64px; }
+.home-tools .t-section-head h2, .links .t-section-head h2 { font-family: var(--display); font-weight: 400; letter-spacing: 0; color: var(--r-red-deep); font-size: 36px; }
+.home-sub, .links .t-section-sub { max-width: 680px; font-size: 16px; line-height: 1.55; color: var(--ink); }
+.home-tools .tools-grid { margin-top: 28px; }
+.home-more { margin-top: 20px; font-size: 15px; color: var(--text-2); }
+.home-more a { color: var(--r-red-deep); font-weight: 600; display: inline-block; padding: 8px 0; }
+.home .approach { padding-top: 0; }
+.prep-grid { margin-top: 24px; }
+
+.page-hero .container { grid-template-columns: minmax(0, 1fr) !important; padding-bottom: 48px; }
+.page-hero h1 { max-width: 760px; }
+.res-layout { padding-top: 40px; padding-bottom: 96px; max-width: 880px; }
+.res-layout #resources { grid-column: auto; grid-row: auto; }
+
+.links { margin-top: 72px; scroll-margin-top: 72px; }
+.link-group { margin-top: 32px; }
+.link-group h3 { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--r-teal); padding-bottom: 8px; border-bottom: 2px solid var(--night); }
+.link-list { list-style: none; padding: 0; margin: 0; }
+.link-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; padding: 14px 0; border-bottom: 2px dotted var(--line); }
+.link-list a { font-weight: 700; font-size: 16px; color: var(--r-red-deep); }
+.link-access { grid-column: 2; grid-row: 1; align-self: start; font-size: 12px; font-weight: 700; color: var(--night); background: var(--mari); border: 1.5px solid var(--night); border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+.link-by { grid-column: 1 / -1; font-size: 13px; color: var(--text-2); margin-top: 2px; }
+.link-what { grid-column: 1 / -1; font-size: 15px; line-height: 1.5; color: var(--ink); margin-top: 4px; }
+@media (max-width: 640px) {
+    .home-tools { padding: 48px 0; }
+    .home-tools .t-section-head h2, .links .t-section-head h2 { font-size: 30px; }
+    .link-list li { grid-template-columns: minmax(0, 1fr); }
+    .link-access { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 6px; }
+}
+@media (min-width: 760px) { .home-tools .tools-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.rickshaw .t-hero-text a { color: var(--mari); font-weight: 600; }
+
+.about-actions { margin-top: 18px; }

@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Organic Chemistry Tutoring · Free Ochem Help on Thursdays | Partho K. Paul</title>
-  <meta name="description" content="Organic chemistry tutoring for Chem 51A–C and upper-division organic chemistry from Partho K. Paul, Ph.D. in Chemistry. Free sessions every Thursday, in person and on Zoom. Practice problems, solutions, and videos by topic. Text (949) 478-2499.">
+  <title>Partho K. Paul, Ph.D. · Chemistry Teaching &amp; Interactive Learning Tools</title>
+  <meta name="description" content="Partho K. Paul, Ph.D. in Chemistry (UC Irvine), teaches general and organic chemistry and builds free interactive tools for students: a Newman Navigator, R/S Assigner, VSEPR Builder, and Equilibrium Explorer.">
   <link rel="canonical" href="https://chemustad.org/">
   <meta name="theme-color" content="#ffffff">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://chemustad.org/">
-  <meta property="og:title" content="Organic Chemistry Tutoring · Partho K. Paul">
-  <meta property="og:description" content="Chem 51A–C and upper-division organic chemistry tutoring. Free Ochem tutoring every Thursday, in person and on Zoom.">
+  <meta property="og:title" content="Partho K. Paul, Ph.D. · Chemistry teaching and interactive tools">
+  <meta property="og:description" content="Chemistry instructor. Ph.D. in Chemistry, UC Irvine. Free interactive tools for general and organic chemistry.">
   <meta property="og:image" content="https://chemustad.org/og-teaching.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Rickshaw-art style chemistry painting with the words Organic chemistry tutoring, free on Thursdays">
+  <meta property="og:image:alt" content="Rickshaw-art style chemistry painting">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -23,34 +23,38 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="preload" href="fonts/shrikhand-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="teaching.css?v=4">
+  <link rel="stylesheet" href="teaching.css?v=5">
   <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"Service","name":"Organic chemistry tutoring","serviceType":"Chemistry tutoring","description":"Individual and group tutoring for Chem 51A–C and upper-division organic chemistry, plus free sessions every Thursday in person and on Zoom.","url":"https://chemustad.org/","provider":{"@type":"Person","name":"Partho K. Paul","url":"https://chemustad.org/research/","email":"mailto:pk@chemustad.org","telephone":"+1-949-478-2499","affiliation":{"@type":"CollegeOrUniversity","name":"University of California, Irvine"}}}
+  {"@context":"https://schema.org","@type":"Person","name":"Partho K. Paul","jobTitle":"Chemistry educator","url":"https://chemustad.org/","email":"mailto:pk@chemustad.org","alumniOf":[{"@type":"CollegeOrUniversity","name":"University of California, Irvine"},{"@type":"CollegeOrUniversity","name":"University of California, Riverside"}]}
   </script>
-  <script src="resources.js?v=2" defer></script>
-  <script src="teaching.js" defer></script>
-  <script src="review-form.js" defer></script>
+  <script>
+  // Old links pointed at sections that now live on their own pages.
+  (function () {
+    var h = location.hash; if (!h) return;
+    var map = { '#resources': 'resources.html#resources', '#practice': 'resources.html#resources', '#tutoring': 'tutoring.html#tutoring', '#thursday': 'tutoring.html#thursday', '#leave-review': 'tutoring.html#leave-review' };
+    if (map[h]) location.replace(map[h]);
+    else if (/^#topic-/.test(h)) location.replace('resources.html' + h);
+  })();
+  </script>
 </head>
-<body class="rickshaw">
-  <a class="skip" href="#thursday">Skip to content</a>
+<body class="rickshaw home">
+  <a class="skip" href="#tools">Skip to content</a>
 
   <div class="announcement-banner" role="region" aria-label="Free tutoring announcement">
     <span>Free Ochem tutoring every Thursday.</span>
-    <a href="#thursday">How to join ›</a>
+    <a href="tutoring.html#thursday">How to join ›</a>
   </div>
 
   <nav class="navbar">
     <div class="nav-container">
       <a href="./" class="nav-logo nav-logo-img"><img src="chemustad-logo.svg" alt="Chemustad" width="223" height="28"></a>
       <ul class="nav-links">
-        <li class="nav-hide-sm"><a href="research/#research" class="nav-link">Research</a></li>
-        <li><a href="#resources" class="nav-link">Practice</a></li>
-        <li class="nav-hide-sm"><a href="#tutoring" class="nav-link">Tutoring</a></li>
         <li class="nav-hide-sm"><a href="#tools" class="nav-link">Tools</a></li>
+        <li><a href="resources.html" class="nav-link">Resources</a></li>
+        <li><a href="tutoring.html" class="nav-link">Tutoring</a></li>
+        <li class="nav-hide-sm"><a href="research/" class="nav-link">Research</a></li>
         <li><a href="#about" class="nav-link">About</a></li>
-        <li class="nav-hide-sm"><a href="#reviews" class="nav-link">Reviews</a></li>
-        <li class="only-touch"><a href="sms:+19494782499?&amp;body=Hi%20Partho%2C%20I%27d%20like%20tutoring%20help.%20Course%3A%20.%20Topics%3A%20.%20Times%20that%20work%3A%20." class="nav-link nav-resume">Text Partho</a></li>
-        <li class="only-fine"><a href="mailto:pk@chemustad.org?subject=Chemistry%20tutoring" class="nav-link nav-resume">Email Partho</a></li>
+        <li class="only-fine"><a href="mailto:pk@chemustad.org" class="nav-link nav-resume">Email Partho</a></li>
       </ul>
     </div>
   </nav>
@@ -58,24 +62,22 @@
   <header class="t-hero">
     <div class="container">
       <div class="t-hero-copy">
-        <p class="eyebrow">Chem 51A–C · Upper-division organic</p>
-        <h1>Organic chemistry tutoring.<br><span>Free Ochem tutoring on Thursdays.</span></h1>
-        <p class="t-hero-text">Individual and group sessions for Chem 51A–C and upper-division organic chemistry. Practice problems, solutions, and videos are posted below by topic as they are finished.</p>
+        <p class="eyebrow">Chemistry educator · Ph.D., UC Irvine</p>
+        <h1>Partho K. Paul, Ph.D.<br><span>Chemistry instructor</span></h1>
+        <p class="t-hero-text">It’s difficult to imagine many of the molecules we draw on paper, especially because molecular geometry is three-dimensional. Traditionally, we’ve used model kits to see them. I built these tools so students can easily draw a molecule and look at it from multiple angles, which helps them understand how molecules interact. I’m developing them with professors from UC Irvine to community colleges, and I’d love to keep doing this work at a community college, PUI, or state university.</p>
         <div class="t-actions">
-          <a class="btn btn-primary" href="https://calendar.app.google/7itj3tSQfWtTNZvH7" target="_blank" rel="noopener">Book a session</a>
-          <a class="link-arrow only-touch" href="sms:+19494782499?&amp;body=Hi%20Partho%2C%20I%27d%20like%20tutoring%20help.%20Course%3A%20.%20Topics%3A%20.%20Times%20that%20work%3A%20.">Text (949) 478-2499</a>
-          <a class="link-arrow only-fine" href="mailto:pk@chemustad.org?subject=Chemistry%20tutoring">Email pk@chemustad.org</a>
-          <a class="link-arrow only-fine" href="sms:+19494782499?&amp;body=Hi%20Partho%2C%20I%27d%20like%20tutoring%20help.%20Course%3A%20.%20Topics%3A%20.%20Times%20that%20work%3A%20.">Text (949) 478-2499</a>
+          <a class="btn btn-primary" href="#tools">See the tools</a>
+          <a class="link-arrow" href="research/Partho_Paul_Teaching_CV.pdf">Teaching CV (PDF)</a>
+          <a class="link-arrow" href="mailto:pk@chemustad.org?subject=Teaching">Email pk@chemustad.org</a>
         </div>
       </div>
-      <section id="thursday" class="thursday" aria-labelledby="thursday-heading">
-        <h2 id="thursday-heading">Free Thursday sessions</h2>
-        <!-- TIME: e.g. <p class="thursday-when">Thursdays, 4–6 pm</p> — add when confirmed (styled in teaching.css) -->
-        <p class="thursday-where">In person and on Zoom</p>
-        <p>Bring your organic chemistry questions. Text or email for this week’s time, room, and Zoom link.</p>
+      <section id="teaching" class="thursday" aria-labelledby="teaching-heading">
+        <h2 id="teaching-heading">Teaching I’m looking for</h2>
+        <p class="thursday-where">Community colleges · PUIs · State universities</p>
+        <p>General chemistry through upper-division organic chemistry, full time or adjunct.</p>
         <div class="thursday-actions">
-          <a class="btn btn-primary" href="sms:+19494782499?&amp;body=Hi%20Partho%2C%20I%27d%20like%20details%20on%20the%20free%20Thursday%20Ochem%20session.">Text for details</a>
-          <a class="btn btn-secondary" href="mailto:pk@chemustad.org?subject=Free%20Thursday%20Ochem%20tutoring">Email</a>
+          <a class="btn btn-primary" href="mailto:pk@chemustad.org?subject=Teaching">Email me</a>
+          <a class="btn btn-secondary" href="research/">Research</a>
         </div>
       </section>
       <figure class="t-hero-fig">
@@ -90,99 +92,45 @@
   <div class="border-strip" aria-hidden="true"></div>
 
 
+
   <main>
-    <div class="container t-layout">
-      <aside id="tutoring" aria-labelledby="tutoring-heading">
-        <div class="tutor-card">
-          <h2 id="tutoring-heading">Tutoring</h2>
-          <div class="tutor-id">
-            <img class="tutor-photo" src="tutor.jpg" alt="Partho K. Paul" width="64" height="64">
-            <div>
-              <p class="tutor-name">Partho K. Paul</p>
-              <p class="tutor-cred">Ph.D. in Chemistry, <span class="nowrap">UC Irvine</span></p>
-              <a class="tutor-portfolio" href="research/">Research portfolio ›</a>
-            </div>
-          </div>
-          <p class="tutor-lead">Chem 51A–C and upper-division organic chemistry. Individual or small-group sessions on your own problem sets, mechanisms, and practice exams.</p>
-          <!-- ADD when confirmed: <p class="tutor-terms">Rate: … (or "Rate on request") · In person or Zoom: … · Location: …</p> -->
-
-          <h3 class="steps-head">To book a session</h3>
-          <p class="book-lead">Pick an open time. It goes on the calendar right away and you get a confirmation by email.</p>
-          <a class="btn btn-primary btn-book" href="https://calendar.app.google/7itj3tSQfWtTNZvH7" target="_blank" rel="noopener">Book a session</a>
-          <p class="book-alt">Or text your course, the topics, and a few times that work.</p>
-
-          <div class="contact-rows">
-            <a class="contact-row" href="sms:+19494782499?&amp;body=Hi%20Partho%2C%20I%27d%20like%20tutoring%20help.%20Course%3A%20.%20Topics%3A%20.%20Times%20that%20work%3A%20."><span>Text</span><span>(949) 478-2499</span></a>
-            <a class="contact-row" href="tel:+19494782499"><span>Call</span><span>(949) 478-2499</span></a>
-            <a class="contact-row" href="mailto:pk@chemustad.org?subject=Chemistry%20tutoring"><span>Email</span><span>pk@chemustad.org</span></a>
-          </div>
-        </div>
-      </aside>
-
-      <section id="resources" aria-labelledby="resources-heading">
+    <section id="tools" class="home-tools" aria-labelledby="tools-heading">
+      <div class="container">
         <div class="t-section-head">
           <div>
-            <h2 id="resources-heading">Practice by topic</h2>
-            <p class="t-section-sub" id="resources-sub">Topics follow the usual course order. Problems, solutions, and videos are posted as each is finished. Practice material is organic chemistry only for now.</p>
-          </div>
-          <div id="course-filters" class="segmented" role="group" aria-label="Filter topics by course" hidden>
-            <button type="button" class="tab-item" data-course="all" aria-pressed="true">All</button>
-            <button type="button" class="tab-item" data-course="I" aria-pressed="false">Organic I</button>
-            <button type="button" class="tab-item" data-course="II" aria-pressed="false">Organic II</button>
+            <h2 id="tools-heading">Interactive tools</h2>
           </div>
         </div>
-
-        <figure class="mech-card">
-          <picture>
-            <source media="(max-width: 640px)" srcset="sn2-narrow.svg" width="780" height="560">
-            <img src="sn2.svg" alt="Illustration of an SN2 reaction: hydroxide attacks bromomethane from the side opposite bromine, and bromide leaves in the same step." width="1200" height="560" loading="lazy">
-          </picture>
-          <figcaption><strong>Worked example · S<sub>N</sub>2.</strong> Hydroxide attacks carbon from the side opposite bromine. The C–O bond forms as the C–Br bond breaks, in one step. At a stereocenter this backside attack inverts the configuration.</figcaption>
-        </figure>
-
-        <div class="tools-block" id="tools">
-          <h3 class="tools-heading">Interactive tools</h3>
-          <div class="tools-grid">
-          <a class="tool-card" href="vsepr.html">
-            <span class="tool-tag">Gen chem · Bonding</span>
-            <span class="tool-title">VSEPR Builder</span>
-            <span class="tool-text">Count electrons, find the steric number, and watch the 3D shape build. Tap through every AX<sub>m</sub>E<sub>n</sub> geometry from AX<sub>2</sub> to AX<sub>2</sub>E<sub>4</sub>.</span>
-            <span class="tool-go">Open the builder ›</span>
-          </a>
-
-          <a class="tool-card" href="equilibrium.html">
-            <span class="tool-tag">Gen chem · Equilibrium</span>
-            <span class="tool-title">Equilibrium Explorer</span>
-            <span class="tool-text">Work an equilibrium problem step by step: K expression, Q versus K, the ICE table, and solving for x, with feedback at every step. Then disturb it and watch Q chase K.</span>
-            <span class="tool-go">Open the explorer ›</span>
-          </a>
-
+        <div class="tools-grid">
           <a class="tool-card" href="newman.html">
             <span class="tool-tag">Org chem · Conformations</span>
             <span class="tool-title">Newman Navigator</span>
-            <span class="tool-text">Type, draw, or pick a molecule and look straight down any bond. Turn the back carbon and watch the Newman projection and the energy change as you go from anti to gauche to eclipsed.</span>
+            <span class="tool-text">Type, draw, or pick a molecule and look straight down any bond. Turn the back carbon and watch the Newman projection and the energy change from anti to gauche to eclipsed. Students can draw wedges and dashes straight from their book.</span>
             <span class="tool-go">Open the navigator ›</span>
           </a>
-
           <a class="tool-card" href="rs.html">
             <span class="tool-tag">Org chem · Stereochemistry</span>
             <span class="tool-title">R/S Assigner</span>
-            <span class="tool-text">Find the stereocenter, rank the four groups, and trace 1 → 2 → 3 to name it R or S. When two groups tie, it shows where the first difference is.</span>
+            <span class="tool-text">Find the stereocenter, rank the four groups, and trace 1 → 2 → 3 to name it R or S. When two groups tie, it shows where they first differ.</span>
             <span class="tool-go">Open the assigner ›</span>
           </a>
-          </div>
+          <a class="tool-card" href="vsepr.html">
+            <span class="tool-tag">Gen chem · Bonding</span>
+            <span class="tool-title">VSEPR Builder</span>
+            <span class="tool-text">Count electrons, find the steric number, and see the 3D shape for every geometry from AX<sub>2</sub> to AX<sub>2</sub>E<sub>4</sub>.</span>
+            <span class="tool-go">Open the builder ›</span>
+          </a>
+          <a class="tool-card" href="equilibrium.html">
+            <span class="tool-tag">Gen chem · Equilibrium</span>
+            <span class="tool-title">Equilibrium Explorer</span>
+            <span class="tool-text">Work an equilibrium problem step by step (K expression, Q versus K, ICE table, solving for x), with feedback at every step.</span>
+            <span class="tool-go">Open the explorer ›</span>
+          </a>
         </div>
+        <p class="home-more"><a href="resources.html">Practice problems and free resources ›</a></p>
+      </div>
+    </section>
 
-        <div id="resource-groups" hidden></div>
-        <p class="progress-note">Other topics: <a class="only-touch" href="sms:+19494782499?&amp;body=Hi%20Partho%2C%20could%20you%20add%20practice%20on%20">text a request ›</a><a class="only-fine" href="mailto:pk@chemustad.org?subject=Topic%20request">email a request ›</a></p>
-        <noscript><p>Please enable JavaScript to view the topic list. You can still use the tutoring contact links on this page.</p></noscript>
-      </section>
-    </div>
-  </main>
-
-  <!-- ==========================================
-       HOW I TEACH + ABOUT ME
-       ========================================== -->
   <section id="approach" class="approach" aria-labelledby="approach-heading">
     <div class="container">
       <div class="t-section-head">
@@ -202,37 +150,12 @@
     </div>
   </section>
 
-  <section id="about" class="about" aria-labelledby="about-heading">
-    <div class="container about-grid">
-      <figure class="about-fig">
-        <img class="about-photo" src="tutor.jpg" alt="Partho K. Paul" width="256" height="256" loading="lazy">
-      </figure>
-      <div class="about-copy">
-        <h2 id="about-heading" class="about-title">About me</h2>
-        <p class="about-text">I grew up in a household where my grandfather and my mother were educators, and a lot of my early learning came through storytelling. In my second year of college I took organic chemistry and was fascinated by how visual the subject is. Chemistry started clicking right away. At UC Riverside I worked as a Supplemental Instruction leader and tutor, where I learned to answer questions with questions, and that grew into my own inquiry-based way of teaching that has worked for many students. I carried that into my Ph.D. at UC Irvine, where I taught at every level of organic chemistry, and into an internship at Irvine Valley College, where I had the opportunity to teach a few lectures at the community college level and share my research with students. I have tutored students from Ivy League schools to state schools and can teach at whatever level of rigor your course demands. I’m tutoring until I find a permanent teaching position.</p>
-        <p class="about-cred"><span class="about-cred-item">Ph.D. in Chemistry, UC Irvine</span><span class="sep"> · </span><span class="about-cred-item">B.S. in Chemical Engineering, UC Riverside</span></p>
-      </div>
-    </div>
-  </section>
+  </main>
 
-  <!-- ==========================================
-       STUDENT REVIEWS
-       Featured: private-tutoring review. Grid: verbatim excerpts from anonymous
-       UCI end-of-term evaluations (Partho_Paul_Teaching_Evaluations.docx).
-       ========================================== -->
   <section id="reviews" class="reviews" aria-labelledby="reviews-heading">
     <div class="container">
-      <p class="reviews-eyebrow">Student reviews</p>
+      <p class="reviews-eyebrow">Student evaluations</p>
       <h2 id="reviews-heading" class="reviews-title">What students say.</h2>
-
-      <figure class="review-feature">
-        <span class="review-mark" aria-hidden="true">“</span>
-        <blockquote>
-          <p>Partho had very advanced and wide knowledge of the material. If I didn’t understand the information, because he had such extensive knowledge, he was able to explain it various different ways until I understood it.</p>
-          <p class="review-highlight">Before I signed up for tutoring, I had a C average in Orgo 1. With Partho’s help, I pulled my grade up to B+ and then second semester with his help I achieved a grade of A−.</p>
-        </blockquote>
-        <figcaption><strong>Kamran H.</strong> · Organic Chemistry 1 &amp; 2 · University of Texas at Austin · private tutoring</figcaption>
-      </figure>
 
       <ul class="review-stats" aria-label="Teaching evaluation results">
         <li class="stat stat-mari"><span class="stat-num">211</span><span class="stat-text">anonymous evaluations from 16 UCI sections of CHEM 51A–C</span></li>
@@ -248,65 +171,30 @@
         <li class="review-card"><blockquote>“He made himself relatable by telling us how he struggled with this material and what he did to overcome it. […] Having that support from your TA really does impact your learning.”</blockquote><cite>CHEM 51B · Winter 2023</cite></li>
         <li class="review-card"><blockquote>“I love that he always wears an ochem shirt on Thursdays for class..it makes my day.”</blockquote><cite>Organic Chemistry</cite></li>
       </ul>
-      <!-- Leave-a-review form: no server needed. Submitting opens the student's email app
-           with a message to Partho (subject + one-paragraph review filled in). -->
-      <div class="review-form-card" id="leave-review">
-        <div class="review-form-intro">
-          <h3>Worked with Partho before?</h3>
-          <p>Leave a short review. It goes straight to Partho when you tap <strong>Send review</strong>.</p>
-        </div>
-        <form id="review-form" class="review-form" novalidate>
-          <div class="rf-row">
-            <label class="rf-field">
-              <span>Course or subject</span>
-              <select name="subject" required>
-                <option value="" disabled selected>Choose one…</option>
-                <option>General chemistry</option>
-                <option>Sophomore organic chemistry</option>
-                <option>Upper-division organic chemistry</option>
-                <option>Free Thursday session</option>
-                <option>Other</option>
-              </select>
-            </label>
-            <label class="rf-field">
-              <span>Name to show <em>(optional)</em></span>
-              <input name="name" type="text" maxlength="60" autocomplete="name" placeholder="e.g. Maya R., or leave blank">
-            </label>
-            <label class="rf-field">
-              <span>School <em>(optional)</em></span>
-              <input name="school" type="text" maxlength="80" placeholder="e.g. UC Irvine">
-            </label>
-          </div>
-          <label class="rf-field">
-            <span>Your review <em>(one paragraph)</em></span>
-            <textarea name="review" rows="5" maxlength="900" required placeholder="What did you work on, and what helped?"></textarea>
-            <span class="rf-count" aria-live="polite"><span id="rf-count">0</span>/900</span>
-          </label>
-          <label class="rf-check">
-            <input type="checkbox" name="consent">
-            <span>Partho may post this review on his website.</span>
-          </label>
-          <input type="text" name="_honey" class="rf-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-          <div class="rf-actions">
-            <button type="submit" class="btn btn-primary">Send review</button>
-            <a class="rf-copy" id="rf-mail" href="#" hidden>Email it instead</a>
-            <button type="button" class="rf-copy" id="rf-copy" hidden>Copy review</button>
-          </div>
-          <p class="rf-msg" id="rf-msg" role="status"></p>
-        </form>
-      </div>
+      <p class="reviews-note">From anonymous end-of-term evaluations of my UC Irvine discussion sections. <a href="tutoring.html#reviews">Tutoring reviews ›</a></p>
+    </div>
+  </section>
 
-      <div class="reviews-cta">
-        <a class="btn btn-primary only-touch" href="sms:+19494782499?&amp;body=Hi%20Partho%2C%20I%27d%20like%20tutoring%20help.%20Course%3A%20.%20Topics%3A%20.%20Times%20that%20work%3A%20.">Text about tutoring</a>
-        <a class="btn btn-primary only-fine" href="mailto:pk@chemustad.org?subject=Chemistry%20tutoring">Email about tutoring</a>
+
+  <section id="about" class="about" aria-labelledby="about-heading">
+    <div class="container about-grid">
+      <figure class="about-fig">
+        <img class="about-photo" src="tutor.jpg" alt="Partho K. Paul" width="256" height="256" loading="lazy">
+      </figure>
+      <div class="about-copy">
+        <h2 id="about-heading" class="about-title">About me</h2>
+        <p class="about-text">I grew up in a household where my grandfather and my mother were educators, and a lot of my early learning came through storytelling. In my second year of college I took organic chemistry and was fascinated by how visual the subject is. Chemistry started clicking right away. At UC Riverside I worked as a Supplemental Instruction leader and tutor, where I learned to answer questions with questions, and that grew into my own inquiry-based way of teaching that has worked for many students. I carried that into my Ph.D. at UC Irvine, where I taught at every level of organic chemistry, and into an internship at Irvine Valley College, where I had the opportunity to teach a few lectures at the community college level and share my research with students. I have tutored students from Ivy League schools to state schools and can teach at whatever level of rigor your course demands. I’m looking for a permanent teaching position, and I tutor in the meantime.</p>
+        <p class="about-cred"><span class="about-cred-item">Ph.D. in Chemistry, UC Irvine</span><span class="sep"> · </span><span class="about-cred-item">B.S. in Chemical Engineering, UC Riverside</span></p>
+        <div class="t-actions about-actions"><a class="btn btn-primary" href="research/Partho_Paul_Teaching_CV.pdf">Teaching CV (PDF)</a><a class="link-arrow" href="mailto:pk@chemustad.org">Email me</a></div>
       </div>
     </div>
   </section>
 
+
   <footer class="site-footer">
     <div class="container">
       <p>© 2026 Partho K. Paul</p>
-      <nav aria-label="Footer"><a href="research/">Research portfolio</a><a href="#tutoring">Tutoring</a><a href="#thursday">Free Thursday sessions</a></nav>
+      <nav aria-label="Footer"><a href="./#tools">Interactive tools</a><a href="resources.html">Resources</a><a href="tutoring.html">Tutoring</a><a href="research/">Research portfolio</a><a href="research/Partho_Paul_Teaching_CV.pdf">Teaching CV (PDF)</a></nav>
     </div>
   </footer>
 </body>
