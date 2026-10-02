@@ -116,6 +116,48 @@
     return p;
   }
 
+  /* ---------------- wedge / dash → chirality ---------------- */
+  // V: [{x, y, el}], E: [{a, b, order, st?: 'wedge'|'dash', from?: vertex at the narrow end}].
+  // For each atom at the narrow end of a wedge or dash, build 3D directions to its neighbours
+  // (screen x right, y up, wedge +z toward the viewer, dash -z), add the implicit H opposite the
+  // other three, and return the SMILES-style tag: chiral '@' when det(p1-p0, p2-p0, p3-p0) < 0,
+  // the same test newman/geom.js uses when it places the atoms. chiralNbrs uses -1 for the implicit H.
+  // Returns { tags: {vertex: {chiral, chiralNbrs}}, skipped: [vertex] } (skipped = not a stereocenter shape).
+  function stereoFromDrawing(V, E, maxVal) {
+    const tags = {}, skipped = [];
+    const centers = new Set();
+    E.forEach((e) => { if (e.st && e.order === 1 && (e.from === e.a || e.from === e.b)) centers.add(e.from); });
+    centers.forEach((i) => {
+      const inc = E.filter((e) => e.a === i || e.b === i);
+      if (inc.some((e) => e.order !== 1)) { skipped.push(i); return; }
+      const nb = inc.map((e) => (e.a === i ? e.b : e.a));
+      const h = Math.max(0, maxVal(V[i].el) - nb.length);
+      if (nb.length + h !== 4 || h > 1 || nb.length < 3) { skipped.push(i); return; }
+      const vec = inc.map((e, k) => {
+        const j = nb[k];
+        let dx = V[j].x - V[i].x, dy = -(V[j].y - V[i].y);
+        const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+        let z = 0;
+        if (e.st && e.from === i) z = e.st === 'wedge' ? 0.9 : -0.9;
+        const n = Math.hypot(dx, dy, z);
+        return [dx / n, dy / n, z / n];
+      });
+      if (h === 1) {
+        let hv = vec.reduce((s, v) => [s[0] - v[0], s[1] - v[1], s[2] - v[2]], [0, 0, 0]);
+        if (Math.hypot(hv[0], hv[1], hv[2]) < 1e-3) { skipped.push(i); return; }
+        vec.push(hv);
+      }
+      const [p0, p1, p2, p3] = vec;
+      const a = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
+      const b = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]];
+      const c = [p3[0] - p0[0], p3[1] - p0[1], p3[2] - p0[2]];
+      const d = a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0]);
+      if (Math.abs(d) < 1e-4) { skipped.push(i); return; }
+      tags[i] = { chiral: d < 0 ? '@' : '@@', chiralNbrs: h === 1 ? nb.concat([-1]) : nb.slice() };
+    });
+    return { tags, skipped };
+  }
+
   /* ---------------- attach ---------------- */
   function attach(canvas, opts) {
     opts = opts || {};
@@ -123,6 +165,7 @@
     const picker = opts.picker || null;
     const bondLength = opts.bondLength || 44;
     let mode = opts.mode === 'chain' ? 'chain' : 'free';
+    let bondTool = 'plain'; // 'plain' | 'wedge' | 'dash'
 
     let V = [];            // vertices {x, y, el, charge}
     let E = [];            // edges {a, b, order}
@@ -166,9 +209,19 @@
       return best;
     }
     function addVertex(p) { V.push({ x: p.x, y: p.y, el: 'C', charge: 0 }); return V.length - 1; }
-    function addEdge(a, b) { if (a !== b && edgeIndex(a, b) < 0) E.push({ a, b, order: 1 }); }
+    function addEdge(a, b) {
+      if (a === b || edgeIndex(a, b) >= 0) return;
+      const e = { a, b, order: 1 };
+      if (bondTool !== 'plain') { e.st = bondTool; e.from = a; }
+      E.push(e);
+    }
     function deleteVertex(i) {
-      E = E.filter((e) => e.a !== i && e.b !== i).map((e) => ({ a: e.a > i ? e.a - 1 : e.a, b: e.b > i ? e.b - 1 : e.b, order: e.order }));
+      const fix = (x) => (x > i ? x - 1 : x);
+      E = E.filter((e) => e.a !== i && e.b !== i).map((e) => {
+        const o = { a: fix(e.a), b: fix(e.b), order: e.order };
+        if (e.st) { o.st = e.st; o.from = fix(e.from); }
+        return o;
+      });
       V.splice(i, 1);
       if (active === i) active = null; else if (active != null && active > i) active--;
     }
@@ -195,8 +248,14 @@
       const c = chem();
       if (!c) return { ok: false, error: 'The chemistry module did not load. Reload the page and try again.' };
       const atoms = V.map((v) => ({ el: v.el, charge: v.charge || 0, x: v.x, y: v.y }));
+      const stereo = stereoFromDrawing(V, E, maxValence);
+      Object.keys(stereo.tags).forEach((k) => { atoms[k].chiral = stereo.tags[k].chiral; atoms[k].chiralNbrs = stereo.tags[k].chiralNbrs; });
       const bonds = E.map((e) => ({ a: e.a, b: e.b, order: e.order }));
-      try { return c.fromGraph(atoms, bonds, 'sketch'); }
+      try {
+        const r = c.fromGraph(atoms, bonds, 'sketch');
+        if (r && r.ok) r.stereo = { set: Object.keys(stereo.tags).length, skipped: stereo.skipped.length };
+        return r;
+      }
       catch (err) { if (root.console) console.warn('NNSketch: fromGraph failed', err); return { ok: false, error: 'I could not read that drawing. Try redrawing it.' }; }
     }
     function emit(result) {
@@ -301,13 +360,28 @@
       }
       if (refused) { shake = { edge: k, until: performance.now() + 300 }; animate(); }
       if (order === e.order) { redraw(); return; }
-      commitStart(); e.order = order; changed();
+      commitStart(); e.order = order; if (order !== 1) { delete e.st; delete e.from; } changed();
     }
+    // Wedge/dash tool on an existing bond: line → wedge/dash (narrow end on the more substituted
+    // atom, the usual stereocenter; ties go to the end nearer the tap) → flipped → line.
+    function stereoBond(k, p) {
+      const e = E[k];
+      if (e.order !== 1) { shake = { edge: k, until: performance.now() + 300 }; animate(); emit({ ok: false, error: 'Wedges and dashes go on single bonds.' }); return; }
+      commitStart();
+      if (e.st !== bondTool) {
+        const da = nbrs(e.a).length, db = nbrs(e.b).length;
+        let from = da > db ? e.a : db > da ? e.b : (dist(p, V[e.a]) <= dist(p, V[e.b]) ? e.a : e.b);
+        e.st = bondTool; e.from = from; e.flipped = false;
+      } else if (!e.flipped) { e.from = e.from === e.a ? e.b : e.a; e.flipped = true; }
+      else { delete e.st; delete e.from; delete e.flipped; }
+      changed();
+    }
+    function tapBond(k, p) { if (bondTool !== 'plain') stereoBond(k, p); else cycleBond(k); }
     function tapFree(p, type) {
       const vi = nearestVertex(p, snapR(type));
       if (vi >= 0) { openPicker(vi); return; }
       const ei = nearestEdge(p, bondR(type));
-      if (ei >= 0) { cycleBond(ei); return; }
+      if (ei >= 0) { tapBond(ei, p); return; }
       closePicker(false);
     }
     function tapChain(p, type) {
@@ -319,7 +393,7 @@
         active = vi; changed(); return;
       }
       const ei = nearestEdge(p, bondR(type));
-      if (ei >= 0) { cycleBond(ei); return; }
+      if (ei >= 0) { tapBond(ei, p); return; }
       commitStart();
       let q = p;
       if (active != null) {
@@ -352,9 +426,14 @@
       });
       if (closeRing && ids.length > 2) ids.push(ids[0]);
       let added = 0;
+      const tool = bondTool;
       for (let k = 1; k < ids.length; k++) {
-        if (ids[k] !== ids[k - 1] && edgeIndex(ids[k - 1], ids[k]) < 0) { addEdge(ids[k - 1], ids[k]); added++; }
+        if (ids[k] !== ids[k - 1] && edgeIndex(ids[k - 1], ids[k]) < 0) {
+          bondTool = k === 1 ? tool : 'plain'; // a wedge/dash stroke: only its first bond, narrow end where the stroke began
+          addEdge(ids[k - 1], ids[k]); added++;
+        }
       }
+      bondTool = tool;
       if (!added && ids.length < 2) { history.pop(); redraw(); return; }
       changed();
     }
@@ -519,7 +598,25 @@
           ctx.lineTo(q.x - sx + nx * (off + jitter), q.y - sy + ny * (off + jitter));
           ctx.stroke();
         };
-        if (e.order === 1) line(a, b, 0, 0);
+        if (e.order === 1 && e.st) {
+          // narrow end at e.from; wide end 7 px half-width
+          const n0 = e.from === e.a ? a : b, w0 = e.from === e.a ? b : a;
+          const wx = -(w0.y - n0.y) / L, wy = (w0.x - n0.x) / L, hw = 7;
+          ctx.fillStyle = color;
+          if (e.st === 'wedge') {
+            ctx.beginPath(); ctx.moveTo(n0.x + jitter, n0.y);
+            ctx.lineTo(w0.x + wx * hw, w0.y + wy * hw); ctx.lineTo(w0.x - wx * hw, w0.y - wy * hw);
+            ctx.closePath(); ctx.fill();
+          } else {
+            const steps = Math.max(4, Math.round(Math.hypot(w0.x - n0.x, w0.y - n0.y) / 6));
+            ctx.lineWidth = 2.2;
+            for (let s = 1; s <= steps; s++) {
+              const t = s / steps, cx = n0.x + (w0.x - n0.x) * t, cy = n0.y + (w0.y - n0.y) * t, r = 1 + (hw - 1) * t;
+              ctx.beginPath(); ctx.moveTo(cx + wx * r + jitter, cy + wy * r); ctx.lineTo(cx - wx * r + jitter, cy - wy * r); ctx.stroke();
+            }
+            ctx.lineWidth = 3;
+          }
+        } else if (e.order === 1) line(a, b, 0, 0);
         else if (e.order === 3) { line(a, b, 0, 0); line(a, b, 5.5, 0.1); line(a, b, -5.5, 0.1); }
         else {
           // second line on the side with more neighbours; centred pair when terminal
@@ -599,6 +696,8 @@
     resize();
     return {
       getMolecule, setMode, undo, clear, redraw, resize, destroy,
+      setBondTool(t) { bondTool = t === 'wedge' || t === 'dash' ? t : 'plain'; },
+      getBondTool: () => bondTool,
       onChange(cb) { if (typeof cb === 'function') listeners.push(cb); },
       canUndo: () => history.length > 0,
       isEmpty: () => V.length === 0,
@@ -607,7 +706,7 @@
     };
   }
 
-  const api = { attach, _clean: cleanStroke };
+  const api = { attach, _clean: cleanStroke, _stereo: stereoFromDrawing };
   root.NNSketch = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

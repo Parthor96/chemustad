@@ -36,6 +36,9 @@ input[type=text]::placeholder { color: #6f6574; }
 /* drawing */
 .sk-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .sk-tools [hidden] { display: none; }
+.sk-bonds { align-items: center; }
+.sk-bonds .sk-label { font-size: 13px; font-weight: 700; color: var(--muted); margin-right: 2px; }
+.sk-bonds .chip { display: inline-flex; align-items: center; gap: 6px; }
 .sk-wrap { position: relative; }
 #sketch { display: block; width: 100%; height: 300px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--night); touch-action: none; }
 #sketch:focus-visible { outline: 2px solid var(--mari); outline-offset: 2px; }

@@ -187,6 +187,9 @@
     camera.position.set(0, 2.2, 10);
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.08; controls.enablePan = false;
+    // Rotation is a free trackball on the molecule (below), not OrbitControls: orbiting stops at the
+    // poles, which made it hard to swing from the Newman view to a side ("paper") view.
+    controls.enableRotate = false;
     // lights exactly as vsepr.html
     scene.add(new THREE.AmbientLight(0xffffff, 0.65));
     const d1 = new THREE.DirectionalLight(0xffffff, 0.85); d1.position.set(8, 14, 12); scene.add(d1);
@@ -210,6 +213,52 @@
     const cyl = (r) => geoCache[r] || (geoCache[r] = new THREE.CylinderGeometry(r, r, 1, 18));
     const sph = (r) => geoCache['s' + r] || (geoCache['s' + r] = new THREE.SphereGeometry(r, 36, 36));
     let camDir0 = V3.norm([0, 0.22, 1]), dist0 = 10;
+
+    /* ----- free trackball: drag turns the molecule about the point the camera looks at ----- */
+    const dom = renderer.domElement;
+    const pointers = new Map();
+    let trk = null, spin = null; // spin = { axis: THREE.Vector3 (world), w: rad per frame }
+    const qTmp = new THREE.Quaternion(), vTmp = new THREE.Vector3(), axW = new THREE.Vector3();
+    function turnWorld(axis, ang) {
+      if (!ang) return;
+      qTmp.setFromAxisAngle(axis, ang);
+      group.quaternion.premultiply(qTmp);
+      // keep the look-at point fixed: rotate the group's offset from it as well
+      vTmp.copy(group.position).sub(controls.target).applyQuaternion(qTmp).add(controls.target);
+      group.position.copy(vTmp);
+    }
+    function dragAxis(dx, dy) {
+      // screen drag (dx right, dy down) → axis in camera space (dy, dx, 0), then to world
+      axW.set(dy, dx, 0); if (axW.lengthSq() < 1e-12) return null;
+      return axW.normalize().applyQuaternion(camera.quaternion);
+    }
+    dom.addEventListener('pointerdown', (e) => {
+      if (e.isPrimary) pointers.clear();
+      pointers.set(e.pointerId, true);
+      if (pointers.size > 1) { trk = null; return; } // pinch: let OrbitControls zoom
+      if (!controls.enabled || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      spin = null;
+      trk = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), w: 0, axis: null };
+    });
+    dom.addEventListener('pointermove', (e) => {
+      if (!trk || e.pointerId !== trk.id || !controls.enabled) return;
+      const dx = e.clientX - trk.x, dy = e.clientY - trk.y;
+      trk.x = e.clientX; trk.y = e.clientY;
+      const ax = dragAxis(dx, dy); if (!ax) return;
+      const ang = Math.hypot(dx, dy) * (2.6 / Math.max(240, Math.min(W, H))); // ~half a turn across the view
+      turnWorld(ax, ang);
+      const now = performance.now(), dt = Math.max(8, now - trk.t); trk.t = now;
+      trk.axis = ax.clone(); trk.w = 0.6 * trk.w + 0.4 * (ang * 16.7 / dt);
+    });
+    const tbEnd = (e) => {
+      pointers.delete(e.pointerId);
+      if (!trk || e.pointerId !== trk.id) return;
+      // a little inertia so it feels like turning a real model (none with reduced motion)
+      if (trk.axis && trk.w > 0.004 && performance.now() - trk.t < 80 && !reduced()) spin = { axis: trk.axis, w: Math.min(trk.w, 0.12) };
+      trk = null;
+    };
+    dom.addEventListener('pointerup', tbEnd);
+    dom.addEventListener('pointercancel', tbEnd);
 
     function disposeGroup() {
       while (group.children.length) {
@@ -286,6 +335,10 @@
     }
     const tmp = new THREE.Vector3();
     function frame() {
+      if (spin) {
+        if (!controls.enabled) spin = null;
+        else { turnWorld(spin.axis, spin.w); spin.w *= 0.93; if (spin.w < 0.0015) spin = null; }
+      }
       if (controls.enabled) controls.update();
       if (halo.visible && atoms[style.halo]) {
         atoms[style.halo].getWorldPosition(tmp); halo.position.copy(tmp); halo.quaternion.copy(camera.quaternion);
@@ -295,7 +348,7 @@
     const gq = () => [group.quaternion.x, group.quaternion.y, group.quaternion.z, group.quaternion.w];
     function project(p) {
       const w = Q.rot(gq(), p);
-      tmp.set(w[0], w[1], w[2]).project(camera);
+      tmp.set(w[0] + group.position.x, w[1] + group.position.y, w[2] + group.position.z).project(camera);
       return { x: (tmp.x + 1) / 2 * W, y: (1 - tmp.y) / 2 * H, z: tmp.z };
     }
     function basis() {
@@ -311,6 +364,7 @@
       const tanH = Math.tan(22.5 * DEG);
       dist0 = Math.min(controls.maxDistance, Math.max(controls.minDistance, R * (H / 2) / (tanH * fitPx(W, H)) + R * 0.35));
       group.quaternion.set(q0[0], q0[1], q0[2], q0[3]);
+      group.position.set(0, 0, 0); spin = null;
       controls.target.set(0, 0, 0);
       camera.position.set(camDir0[0] * dist0, camDir0[1] * dist0, camDir0[2] * dist0);
       camera.up.set(0, 1, 0); camera.lookAt(0, 0, 0);
@@ -320,11 +374,14 @@
     function orient(q1, focusLocal, camDir, dist, instant, done) {
       const qa = gq(), ta = [controls.target.x, controls.target.y, controls.target.z];
       const ca = [camera.position.x, camera.position.y, camera.position.z];
+      const pa = [group.position.x, group.position.y, group.position.z];
+      spin = null; trk = null;
       const d = dist || Math.min(controls.maxDistance, Math.max(controls.minDistance, camera.position.distanceTo(controls.target)));
       const tb = Q.rot(q1, focusLocal), cb = V3.add(tb, V3.scale(camDir, d));
       controls.enabled = false;
       tween(instant ? 0 : 700, (t) => {
         const q = Q.slerp(qa, q1, t); group.quaternion.set(q[0], q[1], q[2], q[3]);
+        group.position.set(pa[0] * (1 - t), pa[1] * (1 - t), pa[2] * (1 - t));
         const tt = V3.lerp(ta, tb, t), cc = V3.lerp(ca, cb, t);
         controls.target.set(tt[0], tt[1], tt[2]); camera.position.set(cc[0], cc[1], cc[2]);
         camera.up.set(0, 1, 0); camera.lookAt(controls.target);
@@ -567,7 +624,7 @@
       say('bond-msg', 'This molecule has no bond with groups on both ends, so there is no Newman projection to draw. Try a longer chain.', 'err');
       ['c-rotate', 'c-energy', 'c-prompts'].forEach((id) => setCard(id, false));
       $('result').hidden = true; $('newman-card').hidden = true; $('rot-strip').hidden = true;
-      $('look').disabled = true; $('swap').disabled = true;
+      $('look').disabled = true; $('swap').disabled = true; $('side').disabled = true;
       updateStyle();
     }
     return true;
@@ -656,7 +713,7 @@
     document.querySelectorAll('#bond-list .chip').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.bond === bondIdx)));
     const bl = chem.bondLabel(st.mol, front, back);
     say('bond-msg', info.rotatable ? bl + ' selected. Look down it, then turn the back carbon.' : info.reason, info.rotatable ? 'ok' : '');
-    $('look').disabled = false; $('swap').disabled = false;
+    $('look').disabled = false; $('swap').disabled = false; $('side').disabled = false;
     ['c-rotate', 'c-energy', 'c-prompts'].forEach((id) => setCard(id, true));
 
     const rot = info.rotatable;
@@ -977,6 +1034,23 @@
     if (keep.look) lookDown(true);
     const subs = ringSubs();
     say('bond-msg', subs.length ? 'Chair flipped: ' + subs.map((x) => x.label + ' ' + (x.pos === 'ax' ? 'axial' : 'equatorial')).join(', ') + '.' : 'Chair flipped: every axial H is now equatorial and every equatorial H axial.', 'ok');
+  }
+
+  /* ----- side ("paper") view: the selected bond lies across the screen, front atom on the left,
+     the front carbon's top-priority group straight up, so the carbon chain sits in the page ----- */
+  function sideView(instant) {
+    if (!st.sel || !view) return;
+    const f = st.sel.front, b = st.sel.back;
+    const a = V3.norm(V3.sub(st.local[b], st.local[f]));
+    const pd = G().dihedralOfPriorityGroups(st.mol, st.coords, f, b);
+    let u = V3.sub(st.local[pd.i], st.local[f]);
+    u = V3.sub(u, V3.scale(a, V3.dot(u, a)));
+    u = V3.len(u) < 1e-6 ? V3.perp(a) : V3.norm(u);
+    const xl = a, yl = u, zl = V3.cross(xl, yl);
+    const q1 = Q.fromRows(xl, yl, zl); // bond along +x, priority group up, viewer on +z
+    const mid = V3.scale(V3.add(st.local[f], st.local[b]), 0.5);
+    engage();
+    view.look(q1, mid, !!instant || reduced(), () => { st.dirty = true; });
   }
 
   /* ----- look down / reset ----- */
@@ -1786,7 +1860,13 @@
     $('sk-undo').disabled = !sketch || !sketch.canUndo();
     $('sk-clear').disabled = !sketch || sketch.isEmpty();
     if (!sketch || sketch.isEmpty()) { say('sk-msg', ''); $('sk-build').disabled = true; return; }
-    if (r.ok) { sayHTML('sk-msg', subHTML(C().formula(r.mol)) + (r.mol.name ? ' (' + esc(r.mol.name) + ')' : '') + '. Ready to build.', 'ok'); $('sk-build').disabled = false; }
+    if (r.ok) {
+      const stc = r.stereo || { set: 0, skipped: 0 };
+      let extra = '';
+      if (stc.set) extra += ' Wedges/dashes set ' + stc.set + ' stereocenter' + (stc.set > 1 ? 's' : '') + '.';
+      if (stc.skipped) extra += ' A wedge or dash is on an atom that isn\'t a stereocenter (or the narrow end is on the wrong atom), so I ignored it.';
+      sayHTML('sk-msg', subHTML(C().formula(r.mol)) + (r.mol.name ? ' (' + esc(r.mol.name) + ')' : '') + '. Ready to build.' + esc(extra), 'ok'); $('sk-build').disabled = false;
+    }
     else { say('sk-msg', r.error || r.message || 'Check the drawing.', 'err'); $('sk-build').disabled = true; }
   }
   function setSketchMode(m) {
@@ -1827,6 +1907,11 @@
     $('sk-chain').addEventListener('click', () => setSketchMode('chain'));
     $('sk-finish').addEventListener('click', () => { if (sketch) sketch.setMode('chain'); });
     $('sk-undo').addEventListener('click', () => sketch && sketch.undo());
+    document.querySelectorAll('.sk-bonds [data-bond]').forEach((btn) => btn.addEventListener('click', () => {
+      if (!sketch) return;
+      sketch.setBondTool(btn.dataset.bond);
+      document.querySelectorAll('.sk-bonds [data-bond]').forEach((o) => o.setAttribute('aria-pressed', String(o === btn)));
+    }));
     $('sk-clear').addEventListener('click', () => sketch && sketch.clear());
     $('sk-build').addEventListener('click', () => {
       if (!sketch) return;
@@ -1838,6 +1923,7 @@
     });
 
     $('look').addEventListener('click', () => lookDown(false));
+    $('side').addEventListener('click', () => sideView(false));
     $('swap').addEventListener('click', () => {
       if (!st.sel) return;
       const wasOn = st.overlayOn;
