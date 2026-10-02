@@ -622,3 +622,5 @@ body.rickshaw {
 .rickshaw .t-hero-text a { color: var(--mari); font-weight: 600; }
 
 .about-actions { margin-top: 18px; }
+
+.approach-lead { display: block; font-weight: 700; color: var(--night); margin-bottom: 4px; }
