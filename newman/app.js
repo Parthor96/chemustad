@@ -145,6 +145,7 @@
   const st = {
     mol: null, coords: null, center: [0, 0, 0], local: [],
     sel: null,              // { bond, front, back, info }
+    turn: 'back',           // which end the controls turn: 'back' | 'front'
     bondInfos: [], profile: null, labels: null,
     overlayOn: false, overlayNear: -1, overlayFar: -1, overlayGeom: null,
     promptIdx: 0, flat: false, hover: -1, q0: Q.id(), radius: 3,
@@ -712,7 +713,7 @@
 
     document.querySelectorAll('#bond-list .chip').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.bond === bondIdx)));
     const bl = chem.bondLabel(st.mol, front, back);
-    say('bond-msg', info.rotatable ? bl + ' selected. Look down it, then turn the back carbon.' : info.reason, info.rotatable ? 'ok' : '');
+    say('bond-msg', info.rotatable ? bl + ' selected. Look down it, then turn either carbon.' : info.reason, info.rotatable ? 'ok' : '');
     $('look').disabled = false; $('swap').disabled = false; $('side').disabled = false;
     ['c-rotate', 'c-energy', 'c-prompts'].forEach((id) => setCard(id, true));
 
@@ -721,7 +722,8 @@
     const isRing = /ring/.test(info.reason || '');
     $('dihedral').disabled = !rot; $('dihedral-m').disabled = !rot;
     $('rot-controls').hidden = !rot;
-    document.querySelectorAll('.snap').forEach((b) => { b.disabled = !rot; });
+    document.querySelectorAll('.snap, .turn').forEach((b) => { b.disabled = !rot; });
+    $('rot-title').textContent = rot ? 'Rotate the ' + st.turn + ' carbon' : 'This bond does not rotate';
     $('rot-hint').textContent = rot ? 'Drag the slider, or drag around the Newman circle.'
       : isRing ? 'Locked: ring bond.' : order === 2 ? 'Locked: double bond.' : order === 3 ? 'Locked: triple bond.' : 'Locked: linear end.';
     $('rot-hint').classList.toggle('locked-line', !rot);
@@ -784,15 +786,46 @@
   /* ------------------------------------------------------------------ */
   /* rotation                                                             */
   /* ------------------------------------------------------------------ */
-  function rotateBy(near, far, delta) {
+  // "Turn the front carbon": make the usual move (which turns the far end), then turn the
+  // whole molecule rigidly about the bond so the groups on `keepEnd` are back where they
+  // were. Every angle and energy is unchanged; only which end appears to move differs.
+  function holdEnd(oldC, newC, a, b, keepEnd) {
+    const other = keepEnd === a ? b : a;
+    let ref = -1;
+    for (const bd of st.mol.bonds) {
+      const n = bd.a === keepEnd ? bd.b : bd.b === keepEnd ? bd.a : -1;
+      if (n >= 0 && n !== other) { ref = n; break; }
+    }
+    if (ref < 0) return newC;
+    const o = newC[a], k = V3.norm(V3.sub(newC[b], o));
+    const pp = (Cs) => { const v = V3.sub(Cs[ref], Cs[keepEnd]); return V3.sub(v, V3.scale(k, V3.dot(v, k))); };
+    const v1 = pp(newC), v0 = pp(oldC);
+    const ang = Math.atan2(V3.dot(V3.cross(v1, v0), k), V3.dot(v1, v0));
+    if (Math.abs(ang) < 1e-9) return newC;
+    const c = Math.cos(ang), sn = Math.sin(ang);
+    return newC.map((p) => {
+      const v = V3.sub(p, o), kd = V3.dot(k, v);
+      return V3.add(o, V3.add(V3.add(V3.scale(v, c), V3.scale(V3.cross(k, v), sn)), V3.scale(k, kd * (1 - c))));
+    });
+  }
+  // near/far: the end the student sees in front and the one behind it. viaDrag: the
+  // finger is on the circle, so in front mode the front groups follow it.
+  function rotateBy(near, far, delta, viaDrag) {
     if (!st.sel || !st.sel.info.rotatable || !delta) return;
-    st.coords = G().rotateAbout(st.mol, st.coords, near, far, delta);
+    if (st.turn === 'front') {
+      const old = st.coords;
+      st.coords = holdEnd(old, G().rotateAbout(st.mol, old, near, far, viaDrag ? -delta : delta), near, far, far);
+    } else {
+      st.coords = G().rotateAbout(st.mol, st.coords, near, far, delta);
+    }
     engage();
     moved();
   }
   function setDihedral(deg) {
     if (!st.sel || !st.sel.info.rotatable) return false;
+    const old = st.coords;
     st.coords = G().setPriorityDihedral(st.mol, st.coords, st.sel.front, st.sel.back, signed(deg));
+    if (st.turn === 'front') st.coords = holdEnd(old, st.coords, st.sel.front, st.sel.back, st.sel.back);
     engage();
     moved();
     return true;
@@ -853,7 +886,13 @@
     if (!st.sel) return;
     const chem = C(), geom = G(), n2 = N2();
     const { front, back, info } = st.sel;
-    const nm = newmanFor(front, back, null);
+    // front mode: keep the back groups still in the panel (back priority group at 12)
+    let up = null;
+    if (st.turn === 'front' && info.rotatable) {
+      const pp = geom.priorityPair(st.mol, front, back);
+      if (pp.l >= 0) up = V3.sub(st.coords[pp.l], st.coords[back]);
+    }
+    const nm = newmanFor(front, back, up);
     const pd = nm.pd;
     let conf = null;
     try { conf = geom.conformationName(st.mol, st.coords, front, back); } catch (e) { console.warn(e); }
@@ -1024,6 +1063,13 @@
     });
   }
 
+  function setTurn(which) {
+    st.turn = which === 'front' ? 'front' : 'back';
+    document.querySelectorAll('.turn').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.turn === st.turn)));
+    $('rot-title').textContent = 'Rotate the ' + st.turn + ' carbon';
+    st.dirty = true;
+  }
+
   /* ----- chair flip (rebuild with the substituents on the other ring positions) ----- */
   function flipChair() {
     if (!st.sel || !st.src) return;
@@ -1111,7 +1157,7 @@
         const p = loc(e), a = N2().angleAt(g.cx, g.cy, p.x, p.y);
         let d = a - drag.last; d = ((d + 540) % 360) - 180; drag.last = a;
         // positive (clockwise on screen) turns the far atom clockwise as the viewer sees it
-        if (d) rotateBy(st.overlayNear, st.overlayFar, d);
+        if (d) rotateBy(st.overlayNear, st.overlayFar, d, true);
         return;
       }
       if (down && e.pointerId === down.id) { const p = loc(e); down.moved = Math.max(down.moved, Math.hypot(p.x - down.x, p.y - down.y)); return; }
@@ -1790,7 +1836,7 @@
     if (st.sel) {
       const chem = C();
       document.querySelectorAll('#bond-list .chip').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.bond === st.sel.bond)));
-      if (st.sel.info.rotatable) say('bond-msg', chem.bondLabel(st.mol, st.sel.front, st.sel.back) + ' selected. Look down it, then turn the back carbon.', 'ok');
+      if (st.sel.info.rotatable) say('bond-msg', chem.bondLabel(st.mol, st.sel.front, st.sel.back) + ' selected. Look down it, then turn either carbon.', 'ok');
       const keepMsg = $('prompt-msg').textContent;
       renderPrompt();
       if (keepMsg) say('prompt-msg', '');
@@ -1954,6 +2000,7 @@
     });
     window.addEventListener('pointerup', () => { if (st.dragging && sliderActive) { st.dragging = false; sliderActive = false; st.dirty = true; if (st.resultPending) writeResult(); } });
     document.querySelectorAll('.snap').forEach((b) => b.addEventListener('click', () => setDihedral(+b.dataset.deg)));
+    document.querySelectorAll('.turn').forEach((b) => b.addEventListener('click', () => setTurn(b.dataset.turn)));
     $('flip').addEventListener('click', flipChair);
 
     $('prompt-check').addEventListener('click', checkPrompt);
@@ -1977,7 +2024,7 @@
       N2().attachDrag($('newman2d'), {
         getGeometry: () => (st.sel && st.sel.info.rotatable ? panelGeometry() : null),
         onStart: () => { st.dragging = true; $('newman2d').classList.add('dragging'); },
-        onDelta: (d) => rotateBy(st.sel.front, st.sel.back, d),
+        onDelta: (d) => rotateBy(st.sel.front, st.sel.back, d, true),
         onEnd: () => { st.dragging = false; $('newman2d').classList.remove('dragging'); if (st.resultPending) writeResult(); }
       });
     }

@@ -1147,7 +1147,7 @@
 
   // ================================================================ naming (SPEC 4.9)
   const TOL = 15;
-  const near = (a, t) => Math.abs(a - t) <= TOL;
+  const near = (a, t) => Math.abs(a - t) <= TOL + 1e-6; // tolerance so ±45° doesn't flip on float drift
 
   // Symmetric rotor: all substituents on this end share one energy class (deviation 5)
   function symmetricEnd(mol, at, other) {

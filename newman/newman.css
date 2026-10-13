@@ -165,3 +165,5 @@ input[type=range][disabled] { opacity: .4; cursor: not-allowed; }
   .panel { padding-left: 16px; padding-right: 16px; }
   .card { padding: 14px 12px; }
 }
+.turn-row { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; flex-wrap: wrap; }
+.turn-row .lbl { margin: 0 4px 0 0; }
