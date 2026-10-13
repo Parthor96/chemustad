@@ -600,18 +600,25 @@ body.rickshaw {
 
 .page-hero .container { grid-template-columns: minmax(0, 1fr) !important; padding-bottom: 48px; }
 .page-hero h1 { max-width: 760px; }
-.res-layout { padding-top: 40px; padding-bottom: 96px; max-width: 880px; }
+.res-layout { padding-top: 32px; padding-bottom: 64px; max-width: 1120px; }
 .res-layout #resources { grid-column: auto; grid-row: auto; }
 
-.links { margin-top: 72px; scroll-margin-top: 72px; }
-.link-group { margin-top: 32px; }
-.link-group h3 { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--r-teal); padding-bottom: 8px; border-bottom: 2px solid var(--night); }
+.links { margin-top: 48px; scroll-margin-top: 72px; }
+.link-group { margin-top: 24px; }
+.link-group h3, .res-tools h3 { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--r-teal); padding-bottom: 8px; border-bottom: 2px solid var(--night); }
 .link-list { list-style: none; padding: 0; margin: 0; }
-.link-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; padding: 14px 0; border-bottom: 2px dotted var(--line); }
+.link-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; padding: 10px 0; border-bottom: 2px dotted var(--line); }
 .link-list a { font-weight: 700; font-size: 16px; color: var(--r-red-deep); }
 .link-access { grid-column: 2; grid-row: 1; align-self: start; font-size: 12px; font-weight: 700; color: var(--night); background: var(--mari); border: 1.5px solid var(--night); border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
 .link-by { grid-column: 1 / -1; font-size: 13px; color: var(--text-2); margin-top: 2px; }
-.link-what { grid-column: 1 / -1; font-size: 15px; line-height: 1.5; color: var(--ink); margin-top: 4px; }
+.link-what { grid-column: 1 / -1; font-size: 15px; line-height: 1.45; color: var(--ink); margin-top: 2px; }
+.res-tools { margin-top: 32px; }
+.res-tools .tool-list { display: grid; column-gap: 40px; }
+.links .t-section-head { margin-bottom: 0; }
+@media (min-width: 900px) {
+    .link-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; align-items: start; }
+    .res-tools .tool-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 640px) {
     .home-tools { padding: 48px 0; }
     .home-tools .t-section-head h2, .links .t-section-head h2 { font-size: 30px; }

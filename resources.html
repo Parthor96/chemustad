@@ -23,11 +23,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="preload" href="fonts/shrikhand-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="teaching.css?v=5">
+  <link rel="stylesheet" href="teaching.css?v=7">
   <script type="application/ld+json">
   {"@context":"https://schema.org","@type":"CollectionPage","name":"Organic chemistry practice and free resources","url":"https://chemustad.org/resources.html","author":{"@type":"Person","name":"Partho K. Paul"}}
   </script>
-  <script src="resources.js?v=4" defer></script>
+  <script src="resources.js?v=5" defer></script>
   <script src="teaching.js" defer></script>
 </head>
 <body class="rickshaw">
@@ -86,7 +86,15 @@
           <figcaption><strong>Worked example · S<sub>N</sub>2.</strong> Hydroxide attacks carbon from the side opposite bromine. The C–O bond forms as the C–Br bond breaks, in one step. At a stereocenter this backside attack inverts the configuration.</figcaption>
         </figure>
 
-        <p class="home-more">Interactive tools for Newman projections, R/S, VSEPR, and equilibrium: <a href="./#tools">see the tools ›</a></p>
+        <section class="res-tools" aria-labelledby="res-tools-heading">
+          <h3 id="res-tools-heading">Interactive tools</h3>
+          <ul class="link-list tool-list">
+            <li><a href="newman.html">Newman Navigator</a><span class="link-what">Look down any bond and turn either carbon to see the Newman projection and energy change.</span></li>
+            <li><a href="rs.html">R/S Assigner</a><span class="link-what">Rank the groups on a stereocenter and name it R or S.</span></li>
+            <li><a href="vsepr.html">VSEPR Builder</a><span class="link-what">Count electrons and see the 3D shape for every geometry.</span></li>
+            <li><a href="equilibrium.html">Equilibrium Explorer</a><span class="link-what">Work K, Q, and ICE-table problems step by step.</span></li>
+          </ul>
+        </section>
 
         <div id="resource-groups" hidden></div>
         <p class="progress-note">Other topics: <a class="only-touch" href="sms:+19494782499?&amp;body=Hi%20Partho%2C%20could%20you%20add%20practice%20on%20">text a request ›</a><a class="only-fine" href="mailto:pk@chemustad.org?subject=Topic%20request">email a request ›</a></p>
@@ -96,9 +104,9 @@
         <div class="t-section-head">
           <div>
             <h2 id="links-heading">Free resources I recommend</h2>
-            <p class="t-section-sub">Made by other teachers and schools. I link to them; I didn’t make them. Everything here is free to use. Anything that is only partly free is marked.</p>
           </div>
         </div>
+        <div class="link-groups">
         <section class="link-group" aria-labelledby="links-free-textbooks">
           <h3 id="links-free-textbooks">Free textbooks</h3>
           <ul class="link-list">
@@ -163,6 +171,7 @@
             <li><a href="https://avogadro.cc/" target="_blank" rel="noopener">Avogadro</a><span class="link-by">Avogadro project</span><span class="link-what">Free desktop program for building and viewing molecules in 3D.</span></li>
           </ul>
         </section>
+        </div>
       </section>
     </div>
   </main>

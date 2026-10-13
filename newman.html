@@ -94,15 +94,15 @@
     }
     @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
   </style>
-  <link rel="stylesheet" href="newman/newman.css?v=5">
+  <link rel="stylesheet" href="newman/newman.css?v=6">
   <script src="vendor/three.min.js" defer></script>
   <script src="vendor/OrbitControls.js" defer></script>
   <script src="newman/chem.js?v=4" defer></script>
-  <script src="newman/geom.js?v=3" defer></script>
+  <script src="newman/geom.js?v=4" defer></script>
   <script src="newman/sketch.js?v=4" defer></script>
   <script src="newman/newman2d.js?v=3" defer></script>
   <script src="newman/chain2d.js?v=4" defer></script>
-  <script src="newman/app.js?v=5" defer></script>
+  <script src="newman/app.js?v=6" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -228,8 +228,9 @@
       </div>
 
       <div class="card locked" id="c-rotate" inert>
-        <h2><span class="num">4</span> Rotate the back carbon</h2>
+        <h2><span class="num">4</span> <span id="rot-title">Rotate the back carbon</span></h2>
         <div id="rot-controls">
+          <div class="turn-row" role="group" aria-label="Which carbon turns"><span class="lbl">Turn</span><button type="button" class="chip turn" data-turn="back" aria-pressed="true">Back carbon</button><button type="button" class="chip turn" data-turn="front" aria-pressed="false">Front carbon</button></div>
           <div class="dih-head"><label class="lbl" for="dihedral">Dihedral angle</label><output id="dih-val" for="dihedral">180°</output></div>
           <input id="dihedral" type="range" min="-180" max="180" step="1" value="180" aria-valuetext="180 degrees">
           <div class="snap-row" role="group" aria-label="Jump to an angle">
