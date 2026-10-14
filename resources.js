@@ -5,7 +5,7 @@ window.TEACHING_RESOURCES = [
   { topic: 'Structure & bonding', course: 'I', problems: [], solutions: [], videos: [] },
   { topic: 'Acids, bases & resonance', course: 'I', problems: [{ label: 'Acids and bases (PDF)', url: 'worksheets/Acids_and_Bases_Worksheet.pdf' }], solutions: [], videos: [] },
   { topic: 'Alkanes & conformations', course: 'I', problems: [{ label: 'Newman projections, with the Newman Navigator (PDF)', url: 'worksheets/Newman_Projections_Worksheet.pdf' }], solutions: [], videos: [] },
-  { topic: 'Stereochemistry', course: 'I', problems: [], solutions: [], videos: [] },
+  { topic: 'Stereochemistry', course: 'I', problems: [{ label: 'Stereochemistry (PDF)', url: 'worksheets/Stereochemistry_Worksheet.pdf' }], solutions: [], videos: [] },
   { topic: 'Substitution & elimination', course: 'I', problems: [], solutions: [], videos: [] },
   { topic: 'Alkenes & alkynes', course: 'I', problems: [], solutions: [], videos: [] },
   { topic: 'Alcohols, ethers & epoxides', course: 'I', problems: [], solutions: [], videos: [] },
