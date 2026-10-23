@@ -2,7 +2,7 @@
 // Each column accepts multiple links: [{ label: 'Worksheet 1 (PDF)', url: 'files/worksheet-1.pdf' }]
 // Videos use the same structure, with YouTube URLs. A topic with no links shows a Text (phone) or Email (desktop) link instead.
 window.TEACHING_RESOURCES = [
-  { topic: 'Structure & bonding', course: 'I', problems: [], solutions: [], videos: [] },
+  { topic: 'Structure & bonding', course: 'I', problems: [{ label: 'Structure and bonding guide (PDF)', url: 'worksheets/Structure_Bonding_Guide.pdf' }, { label: 'Practice, with the VSEPR Builder (PDF)', url: 'worksheets/Structure_Bonding_Practice.pdf' }], solutions: [], videos: [] },
   { topic: 'Acids, bases & resonance', course: 'I', problems: [{ label: 'Acids and bases (PDF)', url: 'worksheets/Acids_and_Bases_Worksheet.pdf' }], solutions: [], videos: [] },
   { topic: 'Alkanes & conformations', course: 'I', problems: [{ label: 'Newman projections, with the Newman Navigator (PDF)', url: 'worksheets/Newman_Projections_Worksheet.pdf' }], solutions: [], videos: [] },
   { topic: 'Stereochemistry', course: 'I', problems: [{ label: 'Stereochemistry (PDF)', url: 'worksheets/Stereochemistry_Worksheet.pdf' }], solutions: [], videos: [] },

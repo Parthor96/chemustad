@@ -65,6 +65,17 @@
     .msg { font-size: 13px; margin-top: 8px; min-height: 1em; }
     .msg.ok { color: var(--green); } .msg.err { color: #ff8a80; }
     .hint { font-size: 12.5px; color: var(--dim); margin-top: 6px; }
+    .ctx { font-size: 13.5px; color: var(--cream); margin: 10px 0 0; }
+    .ctx b { color: var(--mari); }
+    .card[hidden] { display: none; }
+    .hyb { display: flex; flex-wrap: wrap; gap: 6px; }
+    .hyb button { font: inherit; font-size: 14px; font-weight: 700; min-width: 58px; min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--night); color: var(--cream); cursor: pointer; }
+    .hyb button:hover { border-color: var(--mari); }
+    .hyb button[aria-pressed="true"] { background: var(--mari); color: var(--night); border-color: #0f0b13; }
+    .lab { align-self: center; font-weight: 700; color: var(--muted); }
+    #in5s, #in5p { width: 64px; }
+    .result .note { font-size: 12.5px; color: var(--muted); margin-top: 2px; max-width: 250px; }
+    .result .note[hidden], .result [hidden] { display: none; }
 
     /* AXmEn grid */
     .grid-wrap { overflow-x: auto; }
@@ -96,7 +107,8 @@
       .legend { position: static; margin: 0 12px 10px; align-self: flex-start; }
       .result { position: static; margin: 0 12px 14px; max-width: none; padding: 10px 14px; grid-template-columns: auto 1fr; gap: 0 16px; align-items: center; }
       .result:not([hidden]) { display: grid; }
-      .result .axe-big { grid-row: span 3; margin: 0; }
+      .result .axe-big { grid-row: span 4; margin: 0; }
+      .result .note { grid-column: 1 / -1; max-width: none; margin-top: 6px; }
       .result .k { display: none; }
       .result .v { margin: 0; font-size: 14px; }
       .topbar nav a.hide-sm { display: none; }
@@ -126,7 +138,7 @@
   <main class="app">
     <section class="panel" aria-label="VSEPR steps">
       <h1>VSEPR Builder</h1>
-      <p class="lead">Work out the shape step by step, then rotate the molecule in 3D. Every shape is labeled AX<sub>m</sub>E<sub>n</sub>: m bonded atoms and n lone pairs on the central atom.</p>
+      <p class="lead">Work out the shape and hybridization step by step, then rotate the molecule in 3D. Every shape is labeled AX<sub>m</sub>E<sub>n</sub>: m bonded atoms and n lone pairs on the central atom.</p>
 
       <div class="mode" role="group" aria-label="Mode">
         <button type="button" id="mode-guided" aria-pressed="true">Build a molecule</button>
@@ -139,6 +151,7 @@
           <h2>Choose a molecule</h2>
           <label class="sr" for="mol">Molecule</label>
           <select id="mol" style="margin-top:10px"></select>
+          <p class="ctx" id="ctx" hidden></p>
         </div>
 
         <div class="card locked" id="c1">
@@ -161,6 +174,26 @@
           <div class="row"><label class="sr" for="in3">Lone pairs on the central atom</label><input id="in3" type="number" inputmode="numeric" placeholder="e.g. 0"><button class="btn" data-step="3">Build 3D shape</button></div>
           <div class="msg" id="m3" role="status"></div>
         </div>
+
+        <div class="card locked" id="c4">
+          <h2><span class="num">4</span> Hybridization</h2>
+          <p>The number of hybrid orbitals equals the steric number: 2 → sp, 3 → sp², 4 → sp³, 5 → sp³d, 6 → sp³d².</p>
+          <div class="hyb" role="group" aria-label="Hybridization">
+            <button type="button" data-h="2">sp</button><button type="button" data-h="3">sp²</button><button type="button" data-h="4">sp³</button><button type="button" data-h="5">sp³d</button><button type="button" data-h="6">sp³d²</button>
+          </div>
+          <div class="msg" id="m4" role="status"></div>
+        </div>
+
+        <div class="card locked" id="c5">
+          <h2><span class="num">5</span> σ and π bonds</h2>
+          <p>Count the bonds to the central atom only. Every bond has one σ. A double bond adds one π, a triple bond adds two.</p>
+          <div class="row">
+            <label class="lab" for="in5s">σ</label><input id="in5s" type="number" inputmode="numeric" placeholder="σ">
+            <label class="lab" for="in5p">π</label><input id="in5p" type="number" inputmode="numeric" placeholder="π">
+            <button class="btn" data-step="5">Check</button>
+          </div>
+          <div class="msg" id="m5" role="status"></div>
+        </div>
       </div>
 
       <!-- Explore mode -->
@@ -182,6 +215,8 @@
         <div class="k">Molecular geometry</div><div class="v" id="r-mol"></div>
         <div class="k">Electron geometry</div><div class="v" id="r-el"></div>
         <div class="k">Ideal bond angle</div><div class="v" id="r-ang"></div>
+        <div class="k" id="r-hyb-k" hidden>Hybridization</div><div class="v" id="r-hyb" hidden></div>
+        <p class="note" id="r-note" hidden></p>
       </div>
       <div class="legend" aria-hidden="true"><span><i style="background:#ffb300;opacity:.7"></i>lone pair</span><span>drag to rotate · pinch or scroll to zoom</span></div>
     </section>
@@ -229,6 +264,28 @@
       ['BrF5', 'BrF<sub>5</sub>', 'bromine pentafluoride', 42, 6, 1, 'Br', ['F', 'F', 'F', 'F', 'F'], []],
       ['XeF4', 'XeF<sub>4</sub>', 'xenon tetrafluoride', 36, 6, 2, 'Xe', ['F', 'F', 'F', 'F'], []]
     ].map(r => ({ id: r[0], html: r[1], name: r[2], val: r[3], sn: r[4], lp: r[5], center: r[6], outer: r[7], dbl: r[8] }));
+
+    // Atoms inside bigger molecules (Structure & Bonding worksheet, Practice problem 2, atoms a–k).
+    // ord = bond order to each outer atom, in the same order as outer. val = null skips the electron count.
+    const WS = [
+      ['ws-a', 'a', 'acrylonitrile, CH₂=CH–C≡N', 'the CH₂ carbon', 3, 0, 'C', ['C', 'H', 'H'], [2, 1, 1]],
+      ['ws-b', 'b', 'acrylonitrile, CH₂=CH–C≡N', 'the C of C≡N', 2, 0, 'C', ['N', 'C'], [3, 1]],
+      ['ws-c', 'c', 'acrylonitrile, CH₂=CH–C≡N', 'the N of C≡N', 2, 1, 'N', ['C'], [3]],
+      ['ws-d', 'd', 'HMQ A (a quinone from my Ph.D.)', 'the O of the CH₂OH arm', 4, 2, 'O', ['C', 'H'], [1, 1]],
+      ['ws-e', 'e', 'HMQ A (a quinone from my Ph.D.)', 'the CH₂ carbon', 4, 0, 'C', ['C', 'O', 'H', 'H'], [1, 1, 1, 1]],
+      ['ws-f', 'f', 'HMQ A (a quinone from my Ph.D.)', 'a ring CH carbon', 3, 0, 'C', ['C', 'C', 'H'], [2, 1, 1]],
+      ['ws-g', 'g', 'HMQ A (a quinone from my Ph.D.)', 'a C=O oxygen', 3, 2, 'O', ['C'], [2]],
+      ['ws-h', 'h', 'DMF, (CH₃)₂N–CHO', 'a CH₃ carbon', 4, 0, 'C', ['N', 'H', 'H', 'H'], [1, 1, 1, 1]],
+      ['ws-i', 'i', 'DMF, (CH₃)₂N–CHO', 'the N', 3, 1, 'N', ['C', 'C', 'C'], [1, 1, 1], {
+        pLp: true,
+        hint2: 'Counting gives 4 (three atoms + one lone pair), but this N is the exception. Look at the second resonance structure of DMF: the lone pair becomes part of a C=N π bond, so it sits in a p orbital, not a hybrid orbital. Count the groups that use hybrid orbitals.',
+        note: 'The lone pair sits in a p orbital and is shared with the C=O π system (resonance), so the N is flat, like the N in every amide.' }],
+      ['ws-j', 'j', 'DMF, (CH₃)₂N–CHO', 'the C=O carbon', 3, 0, 'C', ['O', 'N', 'H'], [2, 1, 1]],
+      ['ws-k', 'k', 'carbon dioxide, O=C=O', 'the C', 2, 0, 'C', ['O', 'O'], [2, 2]]
+    ].map(r => Object.assign({ id: r[0], letter: r[1], name: r[2], atom: r[3], val: null, sn: r[4], lp: r[5], center: r[6], outer: r[7], ord: r[8], dbl: [] }, r[9] || {}));
+    const ALL = MOLS.concat(WS);
+    const ordOf = (mol, k) => mol.ord ? mol.ord[k] : (mol.dbl.includes(mol.outer[k]) ? 2 : 1);
+    const HYB = { 2: 'sp', 3: 'sp²', 4: 'sp³', 5: 'sp³d', 6: 'sp³d²' };
 
     const $ = id => document.getElementById(id);
     const sub = n => (n === 1 ? '' : '<sub>' + n + '</sub>');
@@ -300,7 +357,7 @@
         list.forEach(({ it, a, b, c }) => {
           if (it.t === 'bond') {
             const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, w = 0.26 * (a.s + b.s) / 2;
-            (it.dbl ? [-0.22, 0.22] : [0]).forEach(o => {
+            ({ 1: [0], 2: [-0.22, 0.22], 3: [-0.32, 0, 0.32] }[it.dbl === true ? 2 : (it.dbl || 1)]).forEach(o => {
               const ox = nx * o * a.s, oy = ny * o * a.s;
               ctx.strokeStyle = '#0f0b13'; ctx.lineWidth = w + 3; ctx.beginPath(); ctx.moveTo(a.x + ox, a.y + oy); ctx.lineTo(b.x + ox, b.y + oy); ctx.stroke();
               ctx.strokeStyle = '#e8dcc6'; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a.x + ox, a.y + oy); ctx.lineTo(b.x + ox, b.y + oy); ctx.stroke();
@@ -352,11 +409,11 @@
       m.add(edge); // ink outline, rickshaw-style
       return m;
     }
-    function bond(p2, double) {
+    function bond(p2, order) {
       const g = new THREE.Group(), p1 = new THREE.Vector3(), len = p1.distanceTo(p2);
       const mat = new THREE.MeshStandardMaterial({ color: 0xe8dcc6, roughness: 0.5 });
       const geo = new THREE.CylinderGeometry(0.13, 0.13, len, 18);
-      (double ? [-0.2, 0.2] : [0]).forEach(x => { const c = new THREE.Mesh(geo, mat); c.position.x = x; g.add(c); });
+      ({ 1: [0], 2: [-0.2, 0.2], 3: [-0.3, 0, 0.3] }[order === true ? 2 : (order || 1)]).forEach(x => { const c = new THREE.Mesh(geo, mat); c.position.x = x; g.add(c); });
       g.position.copy(p1).lerp(p2, 0.5);
       g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p2.clone().normalize());
       return g;
@@ -374,8 +431,8 @@
       const m = new THREE.Mesh(new THREE.SphereGeometry(0.28, 20, 20), new THREE.MeshBasicMaterial({ color: 0xfbf3e2, transparent: true, opacity: 0.35 }));
       m.position.set(...arr); return m;
     }
-    // draw: center symbol, sn, lp, outer list (symbols for bonded positions), double set, stage
-    function draw(center, sn, lp, outer, dbl, stage) {
+    // draw: center symbol, sn, lp, outer list (symbols for bonded positions), double set (or a mol with .ord), stage
+    function draw(center, sn, lp, outer, dbl, stage, mol) {
       if (!ready) return; clear();
       const F = flat, unit = p => { const L = Math.hypot(...p); return p.map(v => v / L); };
       const put = (sym, p) => { const [color, r] = EL[sym] || EL.X; F.add({ t: 'atom', p, color, r }); };
@@ -393,46 +450,83 @@
       let k = 0;
       pos.forEach((p, i) => {
         if (lpIdx.includes(i)) { if (F) F.add({ t: 'lp', p: unit(p).map(v => v * 1.45) }); else group.add(lonePair(p)); return; }
-        const sym = outer[k++] || 'X', isD = dbl.includes(sym);
+        const kk = k, sym = outer[k++] || 'X', isD = mol ? ordOf(mol, kk) : (dbl.includes(sym) ? 2 : 1);
         if (F) { F.add({ t: 'bond', p, dbl: isD, r0 }); put(sym, p); }
         else { const v = new THREE.Vector3(...p); group.add(bond(v, isD)); group.add(atom(sym, v)); }
       });
+      if (mol && mol.pLp) { // lone pair in a p orbital, perpendicular to the plane of the three bonds
+        [[0, 0, 2.5], [0, 0, -2.5]].forEach(p => { if (F) F.add({ t: 'lp', p: [0, 0, p[2] > 0 ? 1.45 : -1.45] }); else group.add(lonePair(p)); });
+      }
     }
-    function showResult(sn, lp) {
+    function showResult(sn, lp, mol) {
       const m = sn - lp, s = SHAPE[sn];
-      $('r-axe').innerHTML = axeHTML(m, lp);
-      $('r-mol').textContent = s.mol[lp]; $('r-el').textContent = s.el; $('r-ang').textContent = s.ang[lp];
+      $('r-axe').innerHTML = m === 1 ? 'AX' + (lp ? 'E' + sub(lp) : '') : axeHTML(m, lp);
+      $('r-mol').textContent = m === 1 ? 'Only one bonded atom, so no shape name' : s.mol[lp];
+      $('r-el').textContent = s.el; $('r-ang').textContent = m === 1 ? 'none (one bond)' : s.ang[lp];
+      ['r-hyb-k', 'r-hyb', 'r-note'].forEach(id => $(id).hidden = true);
+      if (mol && mol.note) { $('r-note').textContent = mol.note; $('r-note').hidden = false; }
       $('result').hidden = false;
     }
+    function showHyb(sn) { $('r-hyb').textContent = HYB[sn]; $('r-hyb-k').hidden = false; $('r-hyb').hidden = false; }
 
     // ---------- guided mode ----------
     const sel = $('mol');
-    sel.innerHTML = '<option value="" disabled selected>Choose a molecule…</option>' +
-      MOLS.map(m => `<option value="${m.id}">${m.html.replace(/<sub>(\d)<\/sub>/g, (_, d) => '₀₁₂₃₄₅₆₇₈₉'[d]).replace('<sup>+</sup>', '⁺')} · ${m.name}</option>`).join('');
+    sel.innerHTML = '<option value="" disabled selected>Choose a molecule…</option><optgroup label="Small molecules">' +
+      MOLS.map(m => `<option value="${m.id}">${m.html.replace(/<sub>(\d)<\/sub>/g, (_, d) => '₀₁₂₃₄₅₆₇₈₉'[d]).replace('<sup>+</sup>', '⁺')} · ${m.name}</option>`).join('') +
+      '</optgroup><optgroup label="Structure & Bonding practice, Problem 2">' +
+      WS.map(m => `<option value="${m.id}">${m.letter} · ${m.atom} in ${m.name.split(' (')[0].split(',')[0]}</option>`).join('') + '</optgroup>';
     let cur = null;
     const setCard = (n, state) => { const c = $('c' + n); c.classList.toggle('locked', state === 'locked'); c.classList.toggle('done', state === 'done'); };
     const say = (n, txt, ok) => { const e = $('m' + n); e.textContent = txt; e.className = 'msg ' + (ok ? 'ok' : 'err'); };
+    const geoLp = m => m.pLp ? 0 : m.lp;
     sel.addEventListener('change', () => {
-      cur = MOLS.find(m => m.id === sel.value);
-      [1, 2, 3].forEach(n => { setCard(n, n === 1 ? 'open' : 'locked'); $('in' + n).value = ''; $('m' + n).textContent = ''; });
+      cur = ALL.find(m => m.id === sel.value);
+      const skip1 = cur.val === null;
+      [1, 2, 3, 4, 5].forEach(n => { setCard(n, n === (skip1 ? 2 : 1) ? 'open' : 'locked'); $('m' + n).textContent = ''; });
+      ['in1', 'in2', 'in3', 'in5s', 'in5p'].forEach(id => $(id).value = '');
+      document.querySelectorAll('.hyb button').forEach(b => b.setAttribute('aria-pressed', 'false'));
+      $('c1').hidden = skip1;
+      $('ctx').hidden = !skip1;
+      if (skip1) $('ctx').innerHTML = `Molecule: ${cur.name}<br>Central atom: <b>${cur.atom}</b> (atom ${cur.letter} in Problem 2). Answer on paper first, then check here.`;
       $('result').hidden = true;
-      draw(cur.center, cur.sn, cur.lp, cur.outer, cur.dbl, 'center');
-      $('in1').focus();
+      draw(cur.center, cur.sn, cur.lp, cur.outer, cur.dbl, 'center', cur);
+      $(skip1 ? 'in2' : 'in1').focus();
+      try { history.replaceState(null, '', '#mol=' + cur.id); } catch (e) {}
     });
     document.querySelectorAll('.btn[data-step]').forEach(b => b.addEventListener('click', () => check(+b.dataset.step)));
     [1, 2, 3].forEach(n => $('in' + n).addEventListener('keydown', e => { if (e.key === 'Enter') check(n); }));
+    ['in5s', 'in5p'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') check(5); }));
+    document.querySelectorAll('.hyb button').forEach(b => b.addEventListener('click', () => {
+      if (!cur || $('c4').classList.contains('locked')) return;
+      document.querySelectorAll('.hyb button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      const h = +b.dataset.h;
+      if (h === cur.sn) { say(4, `Correct: ${cur.sn} groups → ${cur.sn} hybrid orbitals → ${HYB[cur.sn]}.`, true); setCard(4, 'done'); setCard(5, 'open'); showHyb(cur.sn); $('in5s').focus(); }
+      else say(4, `Not quite. Use the steric number from step 2 (${cur.sn}): one hybrid orbital per group.`, false);
+    }));
     function check(step) {
       if (!cur) return;
-      const v = parseInt($('in' + step).value, 10);
+      const inp = $('in' + step), v = inp ? parseInt(inp.value, 10) : NaN;
       if (step === 1) {
         if (v === cur.val) { say(1, `Correct: ${cur.val} valence electrons.`, true); setCard(1, 'done'); setCard(2, 'open'); $('in2').focus(); }
         else say(1, v > cur.val ? 'Too many. Recount each atom’s group number and the charge.' : 'Too few. Recount each atom’s group number and the charge.', false);
       } else if (step === 2) {
         if (v === cur.sn) { say(2, `Correct: ${cur.sn} electron groups → ${SHAPE[cur.sn].el.toLowerCase()} electron geometry.`, true); setCard(2, 'done'); setCard(3, 'open'); draw(cur.center, cur.sn, 0, [], [], 'domains'); $('in3').focus(); }
-        else say(2, 'Not quite. Count bonded atoms plus lone pairs on the central atom; a double bond is one group.', false);
-      } else {
-        if (v === cur.lp) { say(3, `Correct: ${cur.outer.length} bonded atoms and ${cur.lp} lone pair${cur.lp === 1 ? '' : 's'}.`, true); setCard(3, 'done'); draw(cur.center, cur.sn, cur.lp, cur.outer, cur.dbl, 'full'); showResult(cur.sn, cur.lp); }
-        else say(3, 'Not quite. Place the remaining electrons on the outer atoms first, then put the leftovers on the central atom as pairs.', false);
+        else if (cur.hint2 && v === cur.sn + 1) say(2, cur.hint2, false);
+        else say(2, 'Not quite. Count bonded atoms plus lone pairs on the central atom; a double or triple bond is one group.', false);
+      } else if (step === 3) {
+        if (v === cur.lp) {
+          say(3, `Correct: ${cur.outer.length} bonded atom${cur.outer.length === 1 ? '' : 's'} and ${cur.lp} lone pair${cur.lp === 1 ? '' : 's'}` + (cur.pLp ? ' (in a p orbital).' : '.'), true);
+          setCard(3, 'done'); setCard(4, 'open');
+          draw(cur.center, cur.sn, geoLp(cur), cur.outer, cur.dbl, 'full', cur); showResult(cur.sn, geoLp(cur), cur);
+        }
+        else say(3, cur.val === null ? 'Not quite. Neutral O has 2 lone pairs, neutral N has 1, neutral C has none. Check the structure on the worksheet.'
+                                     : 'Not quite. Place the remaining electrons on the outer atoms first, then put the leftovers on the central atom as pairs.', false);
+      } else if (step === 5) {
+        const sg = parseInt($('in5s').value, 10), pi = parseInt($('in5p').value, 10);
+        const S = cur.outer.length, P = cur.outer.reduce((t, _, k) => t + ordOf(cur, k) - 1, 0);
+        if (sg === S && pi === P) { say(5, `Correct: ${S} σ and ${P} π bond${P === 1 ? '' : 's'} on the central atom.`, true); setCard(5, 'done'); }
+        else if (sg !== S) say(5, 'Check σ: there is exactly one σ bond to each bonded atom, including H.', false);
+        else say(5, 'σ is right. Check π: a double bond has one π, a triple bond has two.', false);
       }
     }
 
@@ -467,7 +561,19 @@
     $('mode-guided').addEventListener('click', () => setMode('guided'));
     $('mode-explore').addEventListener('click', () => setMode('explore'));
 
-    window.addEventListener('load', () => { init3D(); if (location.hash === '#explore') setMode('explore'); });
+    window.addEventListener('load', () => {
+      init3D();
+      if (location.hash === '#explore') setMode('explore');
+      fromHash();
+    });
+    function fromHash() {
+      const mm = location.hash.match(/^#mol=([\w+-]+)$/);
+      if (mm && ALL.some(x => x.id === mm[1]) && (!cur || cur.id !== mm[1])) {
+        if ($('guided').hidden) setMode('guided');
+        sel.value = mm[1]; sel.dispatchEvent(new Event('change'));
+      }
+    }
+    window.addEventListener('hashchange', fromHash);
   })();
   </script>
 </body>
